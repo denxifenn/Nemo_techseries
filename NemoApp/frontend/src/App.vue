@@ -1,14 +1,18 @@
 <template>
   <div id="app">
-    <h1>Welcome to NemoApp</h1>
+    <h1 class="text-3xl font-bold">NemoApp</h1>
   </div>
 </template>
 
 <script>
 export default {
-  name: 'App'
+  name: 'App',
 }
 </script>
+
+<!-- <script setup>
+// import InputText from 'primevue/inputtext';
+</script> -->
 
 <style>
 #app {
