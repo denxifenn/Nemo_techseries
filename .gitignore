@@ -1,0 +1,69 @@
+# OS / Editor
+.DS_Store
+Thumbs.db
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Node / Vue (frontend)
+node_modules/
+dist/
+.cache/
+coverage/
+*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+.eggs/
+.build/
+dist/
+pip-wheel-metadata/
+.pytest_cache/
+.tox/
+.mypy_cache/
+.coverage*
+htmlcov/
+.ipynb_checkpoints/
+
+# Python virtual environments
+env/
+venv/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment / Secrets
+.env
+.env.*
+**/.env
+**/.env.*
+
+# Firebase secrets and emulator data
+**/firebase-admin-key*.json
+.firebase/
+firebase-debug.log
+
+# Project-specific: ignore Python requirements files (as requested)
+# Note: Typically requirements.txt is committed, but per request we ignore it.
+**/requirements*.txt
+
+# Build artifacts (general)
+*.bak
+*.tmp
+*.temp
+~$*
