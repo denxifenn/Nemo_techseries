@@ -1,15 +1,18 @@
 # Nemo Project - Status Checklist
 
-Last updated: 2025-09-03 (UTC+8) – group booking by names shipped
+Last updated: 2025-09-03 (UTC+8)
 
 This document tracks backend progress against the agreed MVP scope. Links point to the implemented files and key functions.
 
 ## Summary
 
 - Backend stack online (Flask + Firebase Admin).
-- Core read endpoints for Events implemented with Firestore.
-- Bookings implemented with atomic capacity checks (individual + group; supports guest names).
 - Auth flow working end-to-end (register, verify token, login).
+- Events API implemented (list + details) on Firestore.
+- Bookings implemented with atomic capacity checks:
+  - Individual booking
+  - Group booking supports existing user UIDs AND purely guest names via "groupMemberNames" (no login needed for those guests). Guest name seats stored as event.guestEntries.
+- Profiles (view/update), Friends (send/accept/list), Admin Event Create, and Suggestions (submit/list) implemented.
 - Seed and verification scripts added for Firestore/Auth.
 
 ## Kanban Alignment (MVP)
@@ -24,9 +27,18 @@ Completed
 - [x] KAN-8 Events list API → [backend/api/events.py](NemoApp/backend/api/events.py)
   - [python.list_events()](NemoApp/backend/api/events.py:12)
 - [x] KAN-9 Event details API → [python.get_event()](NemoApp/backend/api/events.py:57)
-- [x] KAN-10 Individual booking API → [python.create_individual_booking()](NemoApp/backend/api/bookings.py:18)
-- [x] KAN-11 Group booking API → [python.create_group_booking()](NemoApp/backend/api/bookings.py:85)
-- [x] KAN-11a Group booking by guest names (no account) → [backend/api/bookings.py](NemoApp/backend/api/bookings.py)
+- [x] KAN-10 Individual booking API → [python.create_individual_booking()](NemoApp/backend/api/bookings.py:16)
+- [x] KAN-11 Group booking API (now supports names) → [python.create_group_booking()](NemoApp/backend/api/bookings.py:83)
+- [x] KAN-12 Profile APIs (view/update) → [backend/api/profile.py](NemoApp/backend/api/profile.py)
+  - [python.get_profile()](NemoApp/backend/api/profile.py:12), [python.update_profile()](NemoApp/backend/api/profile.py:29)
+- [x] KAN-17/19 Friends APIs → [backend/api/friends.py](NemoApp/backend/api/friends.py)
+  - [python.send_friend_request()](NemoApp/backend/api/friends.py:18)
+  - [python.handle_friend_request()](NemoApp/backend/api/friends.py:63)
+  - [python.list_friends()](NemoApp/backend/api/friends.py:105)
+- [x] KAN-21 Admin create event → [python.create_event()](NemoApp/backend/api/admin.py:22)
+- [x] KAN-23 Suggestions → [backend/api/suggestions.py](NemoApp/backend/api/suggestions.py)
+  - [python.create_suggestion()](NemoApp/backend/api/suggestions.py:12)
+  - [python.list_suggestions()](NemoApp/backend/api/suggestions.py:44)
 - [x] Seed script (sample users/events/friendRequest) → [python.main()](NemoApp/backend/scripts/init_db.py:167)
 - [x] Firebase verification script → [python.main()](NemoApp/backend/scripts/verify_firebase.py:6)
 - [x] Auth decorators → [python.require_auth()](NemoApp/backend/utils/decorators.py:8), [python.require_admin()](NemoApp/backend/utils/decorators.py:27)
@@ -36,16 +48,6 @@ In Progress
 - [-] Test all APIs with Postman/CLI
 
 Pending (in recommended order)
-- [ ] KAN-12 Profile APIs (view/update) → [backend/api/profile.py](NemoApp/backend/api/profile.py)
-  - Wire Firestore for [python.get_profile()](NemoApp/backend/api/profile.py:12), [python.update_profile()](NemoApp/backend/api/profile.py:26)
-- [ ] KAN-17/19 Friends APIs → [backend/api/friends.py](NemoApp/backend/api/friends.py)
-  - [python.send_friend_request()](NemoApp/backend/api/friends.py:14)
-  - [python.handle_friend_request()](NemoApp/backend/api/friends.py:29)
-  - [python.list_friends()](NemoApp/backend/api/friends.py:43)
-- [ ] KAN-21 Admin create event → [python.create_event()](NemoApp/backend/api/admin.py:28)
-- [ ] KAN-23 Suggestions → [backend/api/suggestions.py](NemoApp/backend/api/suggestions.py)
-  - [python.create_suggestion()](NemoApp/backend/api/suggestions.py:12)
-  - [python.list_suggestions()](NemoApp/backend/api/suggestions.py:24)
 - [ ] Collection schema codification (docs/validators):
   - KAN-27 users
   - KAN-28 events
@@ -53,6 +55,7 @@ Pending (in recommended order)
   - KAN-30 friend_requests
   - KAN-31 suggestions
   - KAN-32 admin
+- [ ] Deployment to Render/Railway (MVP)
 
 ## Implemented Endpoints (Backend)
 
@@ -66,64 +69,70 @@ Events
 - GET /api/events/:id → [python.get_event()](NemoApp/backend/api/events.py:57)
 
 Bookings
-- POST /api/bookings/individual → [python.create_individual_booking()](NemoApp/backend/api/bookings.py:18)
-- POST /api/bookings/group → [python.create_group_booking()](NemoApp/backend/api/bookings.py:85)
-- GET /api/bookings/my → [python.list_my_bookings()](NemoApp/backend/api/bookings.py:165)
-  - Note: group bookings accept either "groupMembers" (UIDs) and/or "groupMemberNames" (guest names). Booking stores guestNames; Event stores guestEntries [{name, addedBy}]. See [backend/api/bookings.py](NemoApp/backend/api/bookings.py)
+- POST /api/bookings/individual → [python.create_individual_booking()](NemoApp/backend/api/bookings.py:16)
+  - Body: {"eventId": "EVENT_ID"}
+- POST /api/bookings/group → [python.create_group_booking()](NemoApp/backend/api/bookings.py:83)
+  - Body (supports both):
+    - Existing user UIDs: "groupMembers": ["uid1","uid2"]
+    - Pure guest names: "groupMemberNames": ["Alice","Bob"]
+  - Behavior:
+    - Includes initiator (current_user) automatically
+    - Atomic capacity checks across UIDs + guest names
+    - Prevents duplicate joins and duplicate guest-name entries per initiator
+    - Event guest name seats persisted in "guestEntries"
+- GET /api/bookings/my → [python.list_my_bookings()](NemoApp/backend/api/bookings.py:224)
 
-Utilities
-- Firebase Admin service → [python.FirebaseService](NemoApp/backend/services/firebase_service.py:1)
-- Decorators → [python.require_auth()](NemoApp/backend/utils/decorators.py:8), [python.require_admin()](NemoApp/backend/utils/decorators.py:27)
-- Firestore seed → [python.main()](NemoApp/backend/scripts/init_db.py:167)
-- Firebase verify → [python.main()](NemoApp/backend/scripts/verify_firebase.py:6)
+Profiles
+- GET /api/profile → [python.get_profile()](NemoApp/backend/api/profile.py:12)
+- PUT /api/profile → [python.update_profile()](NemoApp/backend/api/profile.py:29)
 
-## What’s left to implement
+Friends
+- POST /api/friends/request → [python.send_friend_request()](NemoApp/backend/api/friends.py:18)
+- PUT /api/friends/request/:id → [python.handle_friend_request()](NemoApp/backend/api/friends.py:63)
+- GET /api/friends → [python.list_friends()](NemoApp/backend/api/friends.py:105)
 
-1) Profiles (KAN-12)
-- GET /api/profile, PUT /api/profile
-- Firestore: users/{uid} (fields: name, profilePicture, etc.)
-- Add minimal server-side validation before write
+Admin
+- GET /api/admin/health → [python.admin_health()](NemoApp/backend/api/admin.py:12)
+- POST /api/admin/events → [python.create_event()](NemoApp/backend/api/admin.py:22)
 
-2) Friends (KAN-17, KAN-19)
-- POST /api/friends/request (by email)
-- PUT /api/friends/request/:id (accept/reject)
-- GET /api/friends (resolve friend IDs to profiles)
-- Firestore: friendRequests, users.friends[]
+Suggestions
+- POST /api/suggestions → [python.create_suggestion()](NemoApp/backend/api/suggestions.py:12)
+- GET /api/suggestions → [python.list_suggestions()](NemoApp/backend/api/suggestions.py:44)
 
-3) Admin + Suggestions
-- POST /api/admin/events (role: admin)
-- Suggestions POST/GET (admin) with Firestore collections
+## Data Model Notes (MVP behavior)
 
-4) Collection Schema Notes (MVP)
-- users: uid, email, name, role, profilePicture, friends[], createdAt
-- events: title, description, category, imageUrl, location, date(YYYY-MM-DD), time(HH:MM), maxParticipants, currentParticipants, participants[], guestEntries[{name, addedBy}], createdBy, status, createdAt
-- bookings: eventId, userId, bookingType, groupMembers[], guestNames[], status, createdAt
-- friendRequests: fromUserId, toUserId, status, createdAt
-- suggestions: userId, eventTitle, eventDescription, category, status, createdAt
+- events:
+  - participants: [uid, ...]
+  - guestEntries: [{ name: string, addedBy: uid }, ...] for pure name bookings
+  - currentParticipants tracks both participants + guestEntries
 
-## Testing Coverage (Executed)
+- bookings:
+  - bookingType: "individual" | "group"
+  - groupMembers: array of UIDs requested (deduped, includes initiator)
+  - guestNames: array of guest strings (for group bookings with names)
 
-- Firebase Admin connectivity → PASS using [python.main()](NemoApp/backend/scripts/verify_firebase.py:6)
-- Seed data writes/reads → PASS using [python.main()](NemoApp/backend/scripts/init_db.py:167)
-- Auth flow → PASS (register → signIn via REST → idToken → verify/login)
-- Events list/details → PASS (reads from Firestore)
-- Bookings (individual/group) → PASS with transactional capacity checks and duplicate prevention
-- Group booking by names (guest seats) → PASS; joinedCount counts new UIDs + new names; over-capacity returns "Only X spots available"
+## Test Checklist (CLI quick refs)
 
-## Next Steps (Suggested)
+- Obtain idToken (Git Bash):
+  - TOKEN=$(curl -s -X POST "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=YOUR_WEB_API_KEY" -H "Content-Type: application/json" -d '{ "email": "you@example.com", "password": "Password123!", "returnSecureToken": true }' | jq -r '.idToken')
 
-1) Implement Profiles (KAN-12) in [backend/api/profile.py](NemoApp/backend/api/profile.py)
-2) Implement Friends (KAN-17, KAN-19) in [backend/api/friends.py](NemoApp/backend/api/friends.py)
-3) Implement Admin create event (KAN-21) in [backend/api/admin.py](NemoApp/backend/api/admin.py)
-4) Implement Suggestions (KAN-23) in [backend/api/suggestions.py](NemoApp/backend/api/suggestions.py)
-5) Prepare Postman collection and export to repo under /NemoApp/tests/postman_collection.json
-6) Decide deployment target (Render/Railway) and add Procfile or service file
+- Individual booking:
+  - curl -X POST http://localhost:5000/api/bookings/individual -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{ "eventId": "EVENT_ID" }'
+
+- Group booking with names only:
+  - curl -X POST http://localhost:5000/api/bookings/group -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{ "eventId":"EVENT_ID", "groupMemberNames":["Alice","Bob"] }'
+
+- Admin create event:
+  - curl -X POST http://localhost:5000/api/admin/events -H "Authorization: Bearer ADMIN_TOKEN" -H "Content-Type: application/json" -d '{ "title":"New Event","description":"...","category":"sports","location":"Field A","date":"2025-12-31","time":"14:00","maxParticipants":20 }'
 
 ## Changelog (Recent)
 
 - Added Firestore-backed events list/detail → [backend/api/events.py](NemoApp/backend/api/events.py)
-- Added individual/group bookings with transactions → [backend/api/bookings.py](NemoApp/backend/api/bookings.py)
-- Extended group booking to accept guest names (stores booking.guestNames and event.guestEntries) → [backend/api/bookings.py](NemoApp/backend/api/bookings.py)
+- Added individual/group bookings with transactions; group booking supports names → [backend/api/bookings.py](NemoApp/backend/api/bookings.py)
+- Implemented Profiles (view/update) → [backend/api/profile.py](NemoApp/backend/api/profile.py)
+- Implemented Friends (request/accept/list) → [backend/api/friends.py](NemoApp/backend/api/friends.py)
+- Implemented Admin create event → [backend/api/admin.py](NemoApp/backend/api/admin.py)
+- Implemented Suggestions (submit/list) → [backend/api/suggestions.py](NemoApp/backend/api/suggestions.py)
 - Added Firebase verification + seed scripts → [backend/scripts](NemoApp/backend/scripts)
 - Hardened auth with decorators → [backend/utils/decorators.py](NemoApp/backend/utils/decorators.py)
 - Set CORS and blueprint registration → [backend/app.py](NemoApp/backend/app.py)
