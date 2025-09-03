@@ -93,12 +93,23 @@ const onFormSubmit = ({ valid }) => {
 <style scoped>
 /* Apply same styling to both input types */
 
+.login-container { 
+  background-image: url('@/assets/workers_background.jpg'); /* use a high-res image */
+  background-size: cover;        /* cover whole container */
+  background-position: center;   /* center image */
+  background-repeat: no-repeat;
+  min-height: 100vh;             /* full viewport height */
+  width: 100%;
+  display: flex;
+  justify-content: center;       /* center login box horizontally */
+  align-items: center;           /* center login box vertically */
+}
 .auth-input-username {
   width: 100%;      /* make them full width of parent container */
   min-height: 2.5rem; /* set a consistent height */
   font-size: 1rem;
   box-sizing: border-box; /* include padding in height */
-  margin-top:5rem;
+  margin-top:3rem;
   margin-left: 0.2rem;
 }
 
@@ -137,7 +148,7 @@ const onFormSubmit = ({ valid }) => {
   height: 700px;
   flex-direction: column;
   align-items: center;  /* keep header + inputs + button centered inside */
-  margin-left: 850px;  
+  margin-left: 50px;  
 }
 
 .auth-submit-btn{
