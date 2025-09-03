@@ -1,18 +1,20 @@
 <template>
   <div id="app">
-    <h1 class="text-3xl font-bold">NEMOAPPPfgfhgfhPP</h1>
+    <router-view />
+    <Toast />
   </div>
 </template>
 
-<script>
+<!-- <script>
 export default {
   name: 'App',
 }
-</script>
-
-<!-- <script setup>
-// import InputText from 'primevue/inputtext';
 </script> -->
+
+<script setup>
+// import InputText from 'primevue/inputtext';
+import Toast from 'primevue/toast';
+</script>
 
 <style>
 #app {
