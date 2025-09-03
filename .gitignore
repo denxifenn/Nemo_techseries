@@ -67,3 +67,7 @@ firebase-debug.log
 *.tmp
 *.temp
 ~$*
+
+# Firebase service account key
+**/firebase-admin-key.json
+**/firebase-debug.log
