@@ -1,6 +1,7 @@
+import os
+import sys
 from datetime import datetime, timedelta
 from typing import List, Dict
-import sys
 import uuid
 
 # Ensure this script is run from the backend/ directory:
@@ -10,6 +11,8 @@ import uuid
 
 try:
     # Import Firestore client from our Firebase service
+    # Add root directory to sys.path so 'services' becomes importable
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
     from services.firebase_service import db
 except Exception as e:
     print("ERROR: Could not import Firestore client. Make sure you run this from backend/ directory.")

@@ -1,19 +1,28 @@
+import os
+import sys
+from dotenv import load_dotenv
 import firebase_admin
 from firebase_admin import credentials, firestore, auth
 from firebase_admin import exceptions as firebase_exceptions
 from datetime import datetime
-import os
-
-# Path to service account key (relative to backend/)
-SERVICE_ACCOUNT_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'firebase', 'firebase-admin-key.json')
 
 # Initialize Firebase Admin if not already initialized
 def initialize_firebase():
+    # Load .env
+    load_dotenv()
+
+    # Path to service account key (relative to backend/)
+    SERVICE_ACCOUNT_PATH = os.getenv("SERVICE_ACCOUNT_PATH")
+
+    if not SERVICE_ACCOUNT_PATH:
+        raise ValueError("Environment variable SERVICE_ACCOUNT_PATH is not set")
+    
     if not firebase_admin._apps:
         if not os.path.exists(SERVICE_ACCOUNT_PATH):
             raise FileNotFoundError(f"Firebase service account key not found at {SERVICE_ACCOUNT_PATH}")
         cred = credentials.Certificate(SERVICE_ACCOUNT_PATH)
         firebase_admin.initialize_app(cred)
+
     return firestore.client()
 
 # Firestore client
@@ -42,7 +51,9 @@ class FirebaseService:
                 'friends': [],
                 'createdAt': datetime.utcnow()
             }
+
             db.collection('users').document(user.uid).set(user_data)
+
             return user.uid
         except firebase_exceptions.FirebaseError as e:
             # Surface Firebase errors with message
