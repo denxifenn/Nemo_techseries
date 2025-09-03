@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <h1 class="text-3xl font-bold">NemoApp</h1>
+    <h1 class="text-3xl font-bold">NEMOAPPPfgfhgfhPP</h1>
   </div>
 </template>
 
