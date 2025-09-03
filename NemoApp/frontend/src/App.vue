@@ -1,13 +1,19 @@
 <template>
   <div id="app">
-    <h1>Welcome to NemoApp</h1>
+    <router-view />
+    <Toast />
   </div>
 </template>
 
-<script>
+<!-- <script>
 export default {
-  name: 'App'
+  name: 'App',
 }
+</script> -->
+
+<script setup>
+// import InputText from 'primevue/inputtext';
+import Toast from 'primevue/toast';
 </script>
 
 <style>
