@@ -1,6 +1,6 @@
 # Nemo Project - Status Checklist
 
-Last updated: 2025-09-03 (UTC+8)
+Last updated: 2025-09-03 (UTC+8) – group booking by names shipped
 
 This document tracks backend progress against the agreed MVP scope. Links point to the implemented files and key functions.
 
@@ -8,7 +8,7 @@ This document tracks backend progress against the agreed MVP scope. Links point 
 
 - Backend stack online (Flask + Firebase Admin).
 - Core read endpoints for Events implemented with Firestore.
-- Bookings implemented with atomic capacity checks (individual + group).
+- Bookings implemented with atomic capacity checks (individual + group; supports guest names).
 - Auth flow working end-to-end (register, verify token, login).
 - Seed and verification scripts added for Firestore/Auth.
 
@@ -25,7 +25,8 @@ Completed
   - [python.list_events()](NemoApp/backend/api/events.py:12)
 - [x] KAN-9 Event details API → [python.get_event()](NemoApp/backend/api/events.py:57)
 - [x] KAN-10 Individual booking API → [python.create_individual_booking()](NemoApp/backend/api/bookings.py:18)
-- [x] KAN-11 Group booking API → [python.create_group_booking()](NemoApp/backend/api/bookings.py:70)
+- [x] KAN-11 Group booking API → [python.create_group_booking()](NemoApp/backend/api/bookings.py:85)
+- [x] KAN-11a Group booking by guest names (no account) → [backend/api/bookings.py](NemoApp/backend/api/bookings.py)
 - [x] Seed script (sample users/events/friendRequest) → [python.main()](NemoApp/backend/scripts/init_db.py:167)
 - [x] Firebase verification script → [python.main()](NemoApp/backend/scripts/verify_firebase.py:6)
 - [x] Auth decorators → [python.require_auth()](NemoApp/backend/utils/decorators.py:8), [python.require_admin()](NemoApp/backend/utils/decorators.py:27)
@@ -66,8 +67,9 @@ Events
 
 Bookings
 - POST /api/bookings/individual → [python.create_individual_booking()](NemoApp/backend/api/bookings.py:18)
-- POST /api/bookings/group → [python.create_group_booking()](NemoApp/backend/api/bookings.py:70)
-- GET /api/bookings/my → [python.list_my_bookings()](NemoApp/backend/api/bookings.py:130)
+- POST /api/bookings/group → [python.create_group_booking()](NemoApp/backend/api/bookings.py:85)
+- GET /api/bookings/my → [python.list_my_bookings()](NemoApp/backend/api/bookings.py:165)
+  - Note: group bookings accept either "groupMembers" (UIDs) and/or "groupMemberNames" (guest names). Booking stores guestNames; Event stores guestEntries [{name, addedBy}]. See [backend/api/bookings.py](NemoApp/backend/api/bookings.py)
 
 Utilities
 - Firebase Admin service → [python.FirebaseService](NemoApp/backend/services/firebase_service.py:1)
@@ -94,8 +96,8 @@ Utilities
 
 4) Collection Schema Notes (MVP)
 - users: uid, email, name, role, profilePicture, friends[], createdAt
-- events: title, description, category, imageUrl, location, date(YYYY-MM-DD), time(HH:MM), maxParticipants, currentParticipants, participants[], createdBy, status, createdAt
-- bookings: eventId, userId, bookingType, groupMembers[], status, createdAt
+- events: title, description, category, imageUrl, location, date(YYYY-MM-DD), time(HH:MM), maxParticipants, currentParticipants, participants[], guestEntries[{name, addedBy}], createdBy, status, createdAt
+- bookings: eventId, userId, bookingType, groupMembers[], guestNames[], status, createdAt
 - friendRequests: fromUserId, toUserId, status, createdAt
 - suggestions: userId, eventTitle, eventDescription, category, status, createdAt
 
@@ -106,6 +108,7 @@ Utilities
 - Auth flow → PASS (register → signIn via REST → idToken → verify/login)
 - Events list/details → PASS (reads from Firestore)
 - Bookings (individual/group) → PASS with transactional capacity checks and duplicate prevention
+- Group booking by names (guest seats) → PASS; joinedCount counts new UIDs + new names; over-capacity returns "Only X spots available"
 
 ## Next Steps (Suggested)
 
@@ -120,6 +123,7 @@ Utilities
 
 - Added Firestore-backed events list/detail → [backend/api/events.py](NemoApp/backend/api/events.py)
 - Added individual/group bookings with transactions → [backend/api/bookings.py](NemoApp/backend/api/bookings.py)
+- Extended group booking to accept guest names (stores booking.guestNames and event.guestEntries) → [backend/api/bookings.py](NemoApp/backend/api/bookings.py)
 - Added Firebase verification + seed scripts → [backend/scripts](NemoApp/backend/scripts)
 - Hardened auth with decorators → [backend/utils/decorators.py](NemoApp/backend/utils/decorators.py)
 - Set CORS and blueprint registration → [backend/app.py](NemoApp/backend/app.py)

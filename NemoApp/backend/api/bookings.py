@@ -85,23 +85,51 @@ def create_individual_booking(current_user):
 def create_group_booking(current_user):
     """
     Create a group booking.
-    Body: {"eventId": "...", "groupMembers": ["uid1","uid2", ...]}
+    Body:
+      {
+        "eventId": "...",
+        "groupMembers": ["uid1","uid2", ...],           # optional existing user UIDs
+        "groupMemberNames": ["Jane Doe","Alex", ...]     # optional guest names (no account)
+      }
     Behavior:
-      - Includes current_user automatically
-      - Deduplicates members
-      - Adds only members not already in event participants
-      - Enforces remaining capacity atomically
-      - Creates one booking document representing the group booking
+      - Includes current_user automatically (UID path)
+      - Deduplicates UID members
+      - Adds only UID members not already in event participants
+      - Adds guest names as seat reservations (no account), recorded on event.guestEntries
+      - Enforces remaining capacity atomically across both UIDs and guest names
+      - Creates one booking document representing the group booking, storing both UIDs and guest names
     """
     body = request.get_json(silent=True) or {}
     event_id = body.get('eventId')
+
+    # Parse UID members
     group_members = body.get('groupMembers', [])
     if not isinstance(group_members, list):
         group_members = []
 
-    # Deduplicate and ensure the initiator is included
+    # Parse guest names (strings)
+    raw_names = body.get('groupMemberNames', [])
+    if not isinstance(raw_names, list):
+        raw_names = []
+
+    # Prepare initiator+UID list and de-dup (preserve order)
     all_members = [current_user] + group_members
-    deduped = list(dict.fromkeys(all_members))  # preserve order and de-dup
+    deduped_uids = list(dict.fromkeys(all_members))
+
+    # Sanitize names: trim, drop empties, de-dup case-insensitively (preserve first casing)
+    seen = set()
+    guest_names = []
+    for n in raw_names:
+        if not isinstance(n, str):
+            continue
+        t = n.strip()
+        if not t:
+            continue
+        key = t.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        guest_names.append(t)
 
     transaction = db.transaction()
 
@@ -114,34 +142,67 @@ def create_group_booking(current_user):
         current_part = int(event.get('currentParticipants', 0) or 0)
         participants = set(event.get('participants', []))
 
-        # Only add members not already participating
-        new_members = [uid for uid in deduped if uid not in participants]
-        if len(new_members) == 0:
-            raise ValueError('All provided members are already participants')
+        # Compute new UIDs to actually add
+        new_uids = [uid for uid in deduped_uids if uid not in participants]
+
+        # Compute guest names that are not already present for this initiator
+        existing_guest_keys = set()
+        for ge in event.get('guestEntries', []) or []:
+            try:
+                name = (ge.get('name') or '').strip()
+                added_by = ge.get('addedBy') or ''
+                if name and added_by:
+                    existing_guest_keys.add(f"{added_by}|{name.casefold()}")
+            except Exception:
+                # Ignore malformed guest entry records
+                continue
+
+        new_guest_names = []
+        for n in guest_names:
+            key = f"{current_user}|{n.casefold()}"
+            if key not in existing_guest_keys:
+                new_guest_names.append(n)
+
+        # Seats requested = new UIDs + new guest names
+        seats_needed = len(new_uids) + len(new_guest_names)
+
+        if seats_needed == 0:
+            # Preserve legacy message when only UIDs were provided but all are already participants
+            if len(group_members) > 0 and len(new_uids) == 0:
+                raise ValueError('All provided members are already participants')
+            raise ValueError('No new seats requested')
 
         available = max_part - current_part
-        if len(new_members) > available:
+        if seats_needed > available:
             raise ValueError(f'Only {available} spots available')
 
-        # Create group booking
+        # Create group booking (store both uids and names)
         booking_ref = db.collection('bookings').document()
         booking_data = {
             'eventId': event_id,
             'userId': current_user,
             'bookingType': 'group',
-            'groupMembers': deduped,  # full requested group (including initiator)
+            'groupMembers': deduped_uids,     # full requested UIDs (including initiator)
+            'guestNames': guest_names,        # new: guest names recorded on the booking
             'status': 'confirmed',
             'createdAt': admin_fs.SERVER_TIMESTAMP
         }
         transaction.set(booking_ref, booking_data)
 
-        # Update event atomically for only the newly added members
-        transaction.update(event_ref, {
-            'currentParticipants': admin_fs.Increment(len(new_members)),
-            'participants': admin_fs.ArrayUnion(new_members)
-        })
+        # Build atomic event update
+        update_data = {
+            'currentParticipants': admin_fs.Increment(seats_needed)
+        }
+        if new_uids:
+            update_data['participants'] = admin_fs.ArrayUnion(new_uids)
+        if new_guest_names:
+            # Store minimal guest entry (avoid SERVER_TIMESTAMP in ArrayUnion payload)
+            guest_entries = [{'name': n, 'addedBy': current_user} for n in new_guest_names]
+            update_data['guestEntries'] = admin_fs.ArrayUnion(guest_entries)
 
-        return booking_ref.id, len(new_members)
+        transaction.update(event_ref, update_data)
+
+        return booking_ref.id, seats_needed
 
     if not event_id:
         return jsonify({'success': False, 'error': 'Missing eventId'}), 400
