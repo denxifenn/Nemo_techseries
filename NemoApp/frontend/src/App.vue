@@ -1,5 +1,6 @@
 <template>
   <div id="app">
+    <NavBar/>
     <router-view />
     <Toast />
   </div>
@@ -12,8 +13,10 @@ export default {
 </script> -->
 
 <script setup>
-// import InputText from 'primevue/inputtext';
 import Toast from 'primevue/toast';
+
+import NavBar from './components/NavBar.vue';
+
 </script>
 
 <style>
@@ -25,4 +28,5 @@ import Toast from 'primevue/toast';
   color: #2c3e50;
   margin-top: 60px;
 }
+
 </style>
