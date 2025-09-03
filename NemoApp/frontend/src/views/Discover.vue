@@ -14,7 +14,8 @@ export default {
     <!-- <h1>{{ componentName }}</h1> -->
     <section class="hero">
         <div class="hero-content">
-            <h1>Explore Events</h1>
+        
+        <h1>Explore Events</h1>
             <p>Find and register for the most exciting events happening near you</p>
             
             <div class="search-bar">
@@ -59,7 +60,7 @@ export default {
             display: flex;
             max-width: 500px;
             margin: 0 auto 30px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.1);
         }
         
         .search-bar input {
@@ -67,15 +68,18 @@ export default {
             border: none;
             outline: none;
             font-size: 1.1em;
-            color: #333;
-        }
+            color: #333; /* dark text for visibility */
+            background: transparent; /* removes gray background */
+              /* Optionally, add: */
+            box-shadow: none;
+    }
         
         .search-bar button {
             background: #FFC67B;
             border: none;
             padding: 8px 20px;
             border-radius: 25px;
-            color: #333;
+            color: #ffffff;
             font-weight: 600;
             cursor: pointer;
             transition: background 0.3s ease;

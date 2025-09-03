@@ -68,9 +68,9 @@ h4{
   background-position: center; /* Position the image within the button */
   background-size: cover;
   border: none;
-  padding: 20px;
+  padding: 42px;
   display: inline-block;
-  margin: 4px 2px;
+  margin: 8px 8px;
   border-radius: 50%;
   cursor: pointer;
 }
@@ -92,7 +92,7 @@ h4{
 }
 
 .logo-image {
-    height: 40px;
+    height: 80px;
     width: auto;
     max-width: 150px;
     object-fit: contain;
@@ -114,14 +114,25 @@ h4{
     margin-left: 1rem;
 }
 
-.p-menubar .p-menuitem-link {
-    color: #333;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
-    transition: background-color 0.2s;
-}
+
 
 .p-menubar .p-menuitem-link:hover {
-    background-color: #f0f0f0;
+    background-color: #ff0000;
 }
+
+/* Force menu links and text to black */
+::v-deep(.p-menubar .p-menuitem-link),
+::v-deep(.p-menubar .p-menuitem-link *){
+  color: #000 !important;
+}
+
+/* On hover: light grey background, keep black text */
+::v-deep(.p-menubar .p-menuitem-link:hover),
+::v-deep(.p-menubar .p-menuitem-link:hover *){
+  background-color: #f0f0f0 !important;
+  color: #000 !important;
+}
+
+
+
 </style>
