@@ -1,51 +1,182 @@
 from flask import Blueprint, jsonify, request
 from utils.decorators import require_auth
-
-# Skeleton Friends Blueprint (MVP stub)
-# Protected with auth decorators; Firestore logic will be added next.
+from services.firebase_service import db
+from firebase_admin import firestore as admin_fs
 
 friends_bp = Blueprint('friends', __name__)
+
+def _get_user_by_email(email: str):
+    """Return (uid, data) for exact email match, or (None, None) if missing/ambiguous."""
+    try:
+        results = list(db.collection('users').where('email', '==', email).limit(2).stream())
+    except Exception:
+        return None, None
+    if len(results) != 1:
+        return None, None
+    doc = results[0]
+    return doc.id, doc.to_dict() or {}
+
 
 @friends_bp.route('/api/friends/request', methods=['POST'])
 @require_auth
 def send_friend_request(current_user):
     """
-    Send a friend request (stub).
-    Body (future): {"email": "friend@example.com"}
+    Send a friend request by recipient email.
+    Body: { "email": "friend@example.com" }
+    Rules:
+      - Cannot add self
+      - Cannot add if already friends
+      - If a pending request exists in either direction, do not duplicate
     """
     body = request.get_json(silent=True) or {}
+    email = (body.get('email') or '').strip()
+
+    if not email:
+        return jsonify({'success': False, 'error': 'Missing email'}), 400
+
+    # Resolve recipient
+    to_uid, to_user = _get_user_by_email(email)
+    if not to_uid:
+        return jsonify({'success': False, 'error': 'User not found for email'}), 404
+
+    if to_uid == current_user:
+        return jsonify({'success': False, 'error': 'Cannot add yourself'}), 400
+
+    # Get sender/recipient docs
+    from_doc = db.collection('users').document(current_user).get()
+    if not from_doc.exists:
+        return jsonify({'success': False, 'error': 'Current user profile not found'}), 404
+    from_user = from_doc.to_dict() or {}
+
+    # Already friends?
+    sender_friends = set(from_user.get('friends', []))
+    if to_uid in sender_friends:
+        return jsonify({'success': False, 'error': 'Already friends'}), 400
+
+    # Check existing pending requests in either direction
+    pending_a = list(
+        db.collection('friendRequests')
+        .where('fromUserId', '==', current_user)
+        .where('toUserId', '==', to_uid)
+        .where('status', '==', 'pending')
+        .limit(1)
+        .stream()
+    )
+    pending_b = list(
+        db.collection('friendRequests')
+        .where('fromUserId', '==', to_uid)
+        .where('toUserId', '==', current_user)
+        .where('status', '==', 'pending')
+        .limit(1)
+        .stream()
+    )
+    if pending_a or pending_b:
+        return jsonify({'success': False, 'error': 'A pending request already exists'}), 400
+
+    # Create request
+    req_ref = db.collection('friendRequests').document()
+    req_data = {
+        'fromUserId': current_user,
+        'toUserId': to_uid,
+        'status': 'pending',
+        'createdAt': admin_fs.SERVER_TIMESTAMP
+    }
+    req_ref.set(req_data)
+
     return jsonify({
-        "success": True,
-        "user": current_user,
-        "request": {"to": body.get("email")},
-        "message": "Friend request stub - to be implemented"
+        'success': True,
+        'requestId': req_ref.id,
+        'message': 'Friend request sent'
     }), 201
+
 
 @friends_bp.route('/api/friends/request/<request_id>', methods=['PUT'])
 @require_auth
 def handle_friend_request(current_user, request_id: str):
     """
-    Accept or reject friend request (stub).
-    Body (future): {"action": "accept" | "reject"}
+    Accept or reject a friend request.
+    Body: { "action": "accept" | "reject" }
+    Rules:
+      - Only the recipient (toUserId) can accept/reject
+      - On accept: add each user to the other's friends list (idempotent)
     """
     body = request.get_json(silent=True) or {}
-    return jsonify({
-        "success": True,
-        "user": current_user,
-        "requestId": request_id,
-        "action": body.get("action"),
-        "message": "Friend request handle stub - to be implemented"
-    }), 200
+    action = (body.get('action') or '').strip().lower()
+    if action not in ('accept', 'reject'):
+        return jsonify({'success': False, 'error': 'Invalid action'}), 400
+
+    req_ref = db.collection('friendRequests').document(request_id)
+    req_snap = req_ref.get()
+    if not req_snap.exists:
+        return jsonify({'success': False, 'error': 'Request not found'}), 404
+    req = req_snap.to_dict() or {}
+
+    if req.get('toUserId') != current_user:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+
+    if req.get('status') != 'pending':
+        return jsonify({'success': False, 'error': 'Request already handled'}), 400
+
+    from_uid = req.get('fromUserId')
+    to_uid = req.get('toUserId')
+
+    if action == 'reject':
+        req_ref.update({'status': 'rejected'})
+        return jsonify({'success': True, 'message': 'Friend request rejected'}), 200
+
+    # Accept: update both users' friends arrays atomically (best-effort)
+    try:
+        from_ref = db.collection('users').document(from_uid)
+        to_ref = db.collection('users').document(to_uid)
+
+        db.run_transaction(lambda txn: _accept_txn(txn, from_ref, to_ref, req_ref))
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+    return jsonify({'success': True, 'message': 'Friend request accepted'}), 200
+
+
+def _accept_txn(txn, from_ref, to_ref, req_ref):
+    from_snap = from_ref.get(transaction=txn)
+    to_snap = to_ref.get(transaction=txn)
+
+    from_friends = set((from_snap.to_dict() or {}).get('friends', []))
+    to_friends = set((to_snap.to_dict() or {}).get('friends', []))
+
+    if to_ref.id not in from_friends:
+        txn.update(from_ref, {'friends': admin_fs.ArrayUnion([to_ref.id])})
+    if from_ref.id not in to_friends:
+        txn.update(to_ref, {'friends': admin_fs.ArrayUnion([from_ref.id])})
+
+    txn.update(req_ref, {'status': 'accepted'})
+
 
 @friends_bp.route('/api/friends', methods=['GET'])
 @require_auth
 def list_friends(current_user):
     """
-    Get current user's friends (stub).
+    Return user's friends with minimal profile info.
     """
-    return jsonify({
-        "success": True,
-        "user": current_user,
-        "friends": [],
-        "message": "Friends list stub - to be implemented"
-    }), 200
+    try:
+        user_snap = db.collection('users').document(current_user).get()
+        if not user_snap.exists:
+            return jsonify({'success': False, 'error': 'User not found'}), 404
+
+        friend_ids = list((user_snap.to_dict() or {}).get('friends', []))
+        friends = []
+
+        # Fetch each friend (small lists are expected for MVP)
+        for fid in friend_ids:
+            snap = db.collection('users').document(fid).get()
+            if snap.exists:
+                d = snap.to_dict() or {}
+                friends.append({
+                    'id': fid,
+                    'name': d.get('name'),
+                    'email': d.get('email'),
+                    'profilePicture': d.get('profilePicture', '')
+                })
+
+        return jsonify({'success': True, 'friends': friends, 'count': len(friends)}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500

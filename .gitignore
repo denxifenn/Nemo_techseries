@@ -15,11 +15,19 @@ pnpm-debug.log*
 lerna-debug.log*
 
 # Node / Vue (frontend)
+# Ignore nested node_modules and build outputs explicitly
 node_modules/
 dist/
 .cache/
 coverage/
 *.local
+**/node_modules/
+**/dist/
+NemoApp/frontend/node_modules/
+NemoApp/frontend/dist/
+NemoApp/frontend/.vite/
+NemoApp/frontend/.nuxt/
+NemoApp/frontend/.parcel-cache/
 
 # Python
 __pycache__/
@@ -43,6 +51,7 @@ htmlcov/
 env/
 venv/
 .venv/
+.venv_nemo/
 ENV/
 env.bak/
 venv.bak/
@@ -58,9 +67,7 @@ venv.bak/
 .firebase/
 firebase-debug.log
 
-# Project-specific: ignore Python requirements files (as requested)
-# Note: Typically requirements.txt is committed, but per request we ignore it.
-**/requirements*.txt
+# Keep requirements files tracked (do not ignore)
 
 # Build artifacts (general)
 *.bak
