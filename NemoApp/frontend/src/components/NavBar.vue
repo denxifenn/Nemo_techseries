@@ -26,6 +26,12 @@
                 </template>
             </Menubar>
         </div>
+        <div>
+            <!-- profile -->
+            <router-link to="/profile">
+                <button class="profile-button"></button>
+            </router-link>
+        </div>
     </div>
 </template>
 
@@ -44,11 +50,6 @@ const items = ref([
         route: '/event-creation'
     },
     {
-        label: 'Profile',
-        icon: 'pi pi-user',
-        route: '/profile'
-    },
-    {
         label: 'Friends',
         icon: 'pi pi-users',
         route: '/friends'
@@ -60,6 +61,18 @@ const items = ref([
 h4{
     font-size: large;
     padding-left: 10%;
+}
+.profile-button {
+  background-image: url('../assets/profilepic.jpg');
+  background-repeat: no-repeat; /* Prevent the image from repeating */
+  background-position: center; /* Position the image within the button */
+  background-size: cover;
+  border: none;
+  padding: 20px;
+  display: inline-block;
+  margin: 4px 2px;
+  border-radius: 50%;
+  cursor: pointer;
 }
 .navbar-container {
     display: flex;
