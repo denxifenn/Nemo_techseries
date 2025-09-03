@@ -36,19 +36,22 @@ def list_events():
         if status:
             query = query.where('status', '==', status)
 
-        # Simple ordering by date then time to keep results stable
+        # Order primarily by date to avoid composite index requirement.
+        # Perform a secondary in-memory sort by time for stable presentation.
         try:
-            query = query.order_by('date').order_by('time')
+            query = query.order_by('date')
         except Exception:
-            # If 'time' does not exist on all docs, fall back to date only
-            try:
-                query = query.order_by('date')
-            except Exception:
-                # As a last resort, leave unordered (Firestore may require an order_by for cursors)
-                pass
+            # As a last resort, leave unordered (Firestore may require an order_by for cursors)
+            pass
 
         docs = query.limit(limit).stream()
         events = [_serialize_event(d) for d in docs]
+
+        # Secondary in-memory sort by (date, time) if present
+        try:
+            events.sort(key=lambda e: ((e.get('date') or ''), (e.get('time') or '')))
+        except Exception:
+            pass
 
         return jsonify({
             'success': True,
