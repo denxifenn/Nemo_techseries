@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from utils.decorators import require_auth
-from services.firebase_service import db
+from services.firebase_service import db, FirebaseService
 from firebase_admin import firestore as admin_fs
 from firebase_admin import auth as admin_auth
 
@@ -96,10 +96,8 @@ def send_friend_request(current_user):
         return jsonify({'success': False, 'error': 'Cannot add yourself'}), 400
 
     # Get sender/recipient docs
-    from_doc = db.collection('users').document(current_user).get()
-    if not from_doc.exists:
-        return jsonify({'success': False, 'error': 'Current user profile not found'}), 404
-    from_user = from_doc.to_dict() or {}
+    # Ensure sender profile exists (auto-provision if missing)
+    from_user = FirebaseService.ensure_user_doc(current_user) or {}
 
     # Already friends?
     sender_friends = set(from_user.get('friends', []))

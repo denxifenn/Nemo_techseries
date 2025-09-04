@@ -65,7 +65,7 @@
         <button @click="createIndividualBooking">Create Individual Booking</button>
       </div>
       <div class="row">
-        <label>Group UIDs (comma-separated)</label>
+        <label>Group UIDs (ignored; initiator only)</label>
         <input v-model="bookings.groupMembers" placeholder="uid1, uid2" />
         <label>Guest Names (comma-separated)</label>
         <input v-model="bookings.guestNames" placeholder="Alice, Bob" />

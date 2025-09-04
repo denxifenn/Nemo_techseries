@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from utils.decorators import require_auth
-from services.firebase_service import db
+from services.firebase_service import db, FirebaseService
 from firebase_admin import firestore as admin_fs
 
 # Profile Blueprint (MVP)
@@ -13,22 +13,18 @@ profile_bp = Blueprint('profile', __name__)
 def get_profile(current_user):
     """
     Get current user's profile.
-    Returns a subset of the user document to avoid leaking internal fields.
+    Auto-provision a minimal user document if it doesn't exist yet.
     """
     try:
-        snap = db.collection('users').document(current_user).get()
-        if not snap.exists:
-            return jsonify({'success': False, 'error': 'User not found'}), 404
-
-        data = snap.to_dict() or {}
+        user = FirebaseService.ensure_user_doc(current_user)
         profile = {
-            'uid': data.get('uid', current_user),
-            'email': data.get('email'),
-            'name': data.get('name'),
-            'role': data.get('role', 'user'),
-            'profilePicture': data.get('profilePicture', ''),
-            'friends': data.get('friends', []),
-            'createdAt': data.get('createdAt')
+            'uid': user.get('uid', current_user),
+            'email': user.get('email'),
+            'name': user.get('name'),
+            'role': user.get('role', 'user'),
+            'profilePicture': user.get('profilePicture', ''),
+            'friends': user.get('friends', []),
+            'createdAt': user.get('createdAt')
         }
         return jsonify({'success': True, 'profile': profile}), 200
     except Exception as e:

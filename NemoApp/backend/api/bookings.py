@@ -85,36 +85,36 @@ def create_individual_booking(current_user):
 def create_group_booking(current_user):
     """
     Create a group booking.
+
+    Policy update:
+      - Only the initiating user (current_user) may be added as a UID.
+      - Additional attendees must be provided as guest names (strings) via "groupMemberNames".
+      - Any "groupMembers" UIDs provided will be ignored.
+    
     Body:
       {
         "eventId": "...",
-        "groupMembers": ["uid1","uid2", ...],           # optional existing user UIDs
         "groupMemberNames": ["Jane Doe","Alex", ...]     # optional guest names (no account)
       }
     Behavior:
-      - Includes current_user automatically (UID path)
-      - Deduplicates UID members
-      - Adds only UID members not already in event participants
-      - Adds guest names as seat reservations (no account), recorded on event.guestEntries
-      - Enforces remaining capacity atomically across both UIDs and guest names
-      - Creates one booking document representing the group booking, storing both UIDs and guest names
+      - Always includes the initiating current_user (if not already a participant).
+      - Adds guest names as seat reservations (no account), recorded on event.guestEntries.
+      - Enforces remaining capacity atomically across the current_user seat (if needed) and guest names.
+      - Creates one booking document representing the group booking, storing the initiator UID and guest names.
     """
     body = request.get_json(silent=True) or {}
     event_id = body.get('eventId')
 
-    # Parse UID members
-    group_members = body.get('groupMembers', [])
-    if not isinstance(group_members, list):
-        group_members = []
+    # Ignore any provided UID members per policy; only initiator UID counts
+    group_members = []
 
     # Parse guest names (strings)
     raw_names = body.get('groupMemberNames', [])
     if not isinstance(raw_names, list):
         raw_names = []
 
-    # Prepare initiator+UID list and de-dup (preserve order)
-    all_members = [current_user] + group_members
-    deduped_uids = list(dict.fromkeys(all_members))
+    # Prepare initiator-only UID list
+    deduped_uids = [current_user]
 
     # Sanitize names: trim, drop empties, de-dup case-insensitively (preserve first casing)
     seen = set()
@@ -142,7 +142,7 @@ def create_group_booking(current_user):
         current_part = int(event.get('currentParticipants', 0) or 0)
         participants = set(event.get('participants', []))
 
-        # Compute new UIDs to actually add
+        # Compute new UIDs to actually add (initiator only)
         new_uids = [uid for uid in deduped_uids if uid not in participants]
 
         # Compute guest names that are not already present for this initiator
@@ -182,8 +182,8 @@ def create_group_booking(current_user):
             'eventId': event_id,
             'userId': current_user,
             'bookingType': 'group',
-            'groupMembers': deduped_uids,     # full requested UIDs (including initiator)
-            'guestNames': guest_names,        # new: guest names recorded on the booking
+            'groupMembers': [current_user],   # initiator only per policy
+            'guestNames': guest_names,        # guest names recorded on the booking
             'status': 'confirmed',
             'createdAt': admin_fs.SERVER_TIMESTAMP
         }
