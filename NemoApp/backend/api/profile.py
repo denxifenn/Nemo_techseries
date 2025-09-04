@@ -62,10 +62,15 @@ def update_profile(current_user):
         if not updates:
             return jsonify({'success': False, 'error': 'No valid fields to update'}), 400
 
+        # Use server timestamp in storage, but do not return the sentinel in JSON
         updates['updatedAt'] = admin_fs.SERVER_TIMESTAMP
 
-        db.collection('users').document(current_user).set(updates, merge=True)
+        doc_ref = db.collection('users').document(current_user)
+        doc_ref.set(updates, merge=True)
 
-        return jsonify({'success': True, 'message': 'Profile updated', 'updated': updates}), 200
+        # Build a safe JSON response (exclude non-serializable sentinel value)
+        response_updates = {k: v for k, v in updates.items() if k != 'updatedAt'}
+
+        return jsonify({'success': True, 'message': 'Profile updated', 'updated': response_updates}), 200
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500

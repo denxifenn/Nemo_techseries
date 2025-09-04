@@ -39,11 +39,18 @@ Security decorators (Auth/Admin):
 - [python.require_admin()](NemoApp/backend/utils/decorators.py:27)
 
 ---
-
+ 
+UID Policy and Signup/Login Flow
+- Normal users receive Firebase-generated random, immutable UIDs on registration. These are used as document IDs in users/{uid} and throughout Firestore/backend.
+- Admin accounts may be provisioned externally via the Firebase Admin SDK with a custom, human-readable UID (e.g., "admin1"). This provisioning is outside normal user signup; ensure users/{uid}.role = "admin".
+- Signup/login:
+  1) Register via POST /api/auth/register → backend creates the Firebase Auth user and users/{uid}. See [python.register()](NemoApp/backend/api/auth.py:6).
+  2) Login on the frontend (Firebase Web SDK or REST) with email+password to obtain an ID token. The backend never receives raw passwords; it only verifies ID tokens on requests. See [python.login()](NemoApp/backend/api/auth.py:34) and [python.verify()](NemoApp/backend/api/auth.py:62).
+ 
 ## 1) users (KAN-27)
-
+ 
 Documents keyed by Firebase Auth UID.
-
+ 
 Required fields:
 - uid: string (Auth UID) — must equal document id
 - email: string (lowercased)

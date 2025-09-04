@@ -30,6 +30,11 @@ Conventions used below
 - Use single quotes around JSON bodies in Git Bash.
 - Optional jq extraction is shown; if not installed, just read the raw JSON.
 
+UIDs and Signup/Login Policy
+- Normal users have Firebase-generated random, immutable UIDs. These serve as the canonical identifiers in Firestore and are returned by the backend.
+- Admin accounts may be provisioned via the Firebase Admin SDK with a custom, human-readable UID (e.g., "admin1"). This is optional and performed outside normal user signup.
+- Email + password sign-in is handled on the client (Firebase Web SDK or REST). The backend never receives raw passwords; it only verifies Firebase ID tokens sent in the Authorization header.
+
 01) Obtain a Firebase idToken (normal user)
 1. Register user (only once):
    curl -X POST http://localhost:5000/api/auth/register -H "Content-Type: application/json" -d '{ "email":"you@example.com", "password":"Password123!", "name":"Your Name" }'

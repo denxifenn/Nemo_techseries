@@ -15,6 +15,14 @@ This document tracks backend progress against the agreed MVP scope. Links point 
 - Profiles (view/update), Friends (send/accept/list), Admin Event Create, and Suggestions (free-text submit/list) implemented.
 - Seed and verification scripts added for Firestore/Auth.
 
+### Auth/UID Policy
+- Normal users have Firebase-generated random, immutable UIDs; these are the canonical identifiers persisted across the backend and Firestore.
+- Admin accounts may optionally be provisioned via the Firebase Admin SDK with custom, human-readable UIDs (e.g., "admin1"). Such provisioning is outside normal user signup; ensure users/{uid}.role = "admin".
+- Signup/Login flow:
+  - Frontend signs in users via Firebase Authentication (email + password) to obtain an ID token.
+  - Backend does not receive raw passwords; it verifies the ID token and extracts the UID on each request via [python.verify()](NemoApp/backend/api/auth.py:62) and decorators in [python.require_auth()](NemoApp/backend/utils/decorators.py:8).
+  - Registration endpoint creates the Auth user and users/{uid} profile: [python.register()](NemoApp/backend/api/auth.py:6).
+
 ## Kanban Alignment (MVP)
 
 Completed

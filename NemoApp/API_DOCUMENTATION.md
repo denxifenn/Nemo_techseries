@@ -10,6 +10,10 @@ Most endpoints require Firebase Authentication. Include the ID token in headers:
 Authorization: Bearer <firebase_id_token>
 ```
 
+Note on UIDs and signup/login flow:
+- Normal users receive Firebase-generated random, immutable UIDs on registration/sign-in. These are the canonical identifiers used by the backend and Firestore.
+- Admin accounts may be provisioned via Firebase Admin SDK with a custom, human-readable UID (e.g., "admin1"). This is optional and performed outside normal user signup.
+- Frontend handles email+password sign-in via Firebase Auth to obtain an ID token. The backend never receives raw passwords; it only verifies the ID token and extracts the UID.
 ## Response Format
 All responses follow this structure:
 ```json
@@ -47,6 +51,10 @@ POST /api/auth/register
 }
 ```
 
+Notes:
+- uid is the Firebase Auth UID. For normal users this is a random alphanumeric string and cannot be changed later.
+- Admins can be created via the Firebase Admin SDK with a custom uid if desired; such provisioning is separate from this endpoint.
+- After registration, clients should sign in via Firebase Auth (email+password) to obtain an ID token for subsequent API calls. The backend accepts ID tokens and does not handle raw passwords.
 #### Login
 ```
 POST /api/auth/login

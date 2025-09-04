@@ -2,19 +2,72 @@ from flask import Blueprint, jsonify, request
 from utils.decorators import require_auth
 from services.firebase_service import db
 from firebase_admin import firestore as admin_fs
+from firebase_admin import auth as admin_auth
 
 friends_bp = Blueprint('friends', __name__)
 
 def _get_user_by_email(email: str):
-    """Return (uid, data) for exact email match, or (None, None) if missing/ambiguous."""
+    """
+    Return (uid, data) for exact email match in Firestore.
+    If not found, attempt to resolve via Firebase Auth and auto-provision a minimal users/{uid} doc.
+    Returns (None, None) if ambiguous or not resolvable.
+    """
+    email = (email or '').strip()
+    if not email:
+        return None, None
+
+    # 1) Try Firestore users by exact email
     try:
-        results = list(db.collection('users').where('email', '==', email).limit(2).stream())
+        results = list(
+            db.collection('users')
+              .where('email', '==', email)
+              .limit(2)
+              .stream()
+        )
+    except Exception:
+        results = []
+
+    if len(results) == 1:
+        doc = results[0]
+        return doc.id, (doc.to_dict() or {})
+
+    if len(results) > 1:
+        # Ambiguous; do not guess
+        return None, None
+
+    # 2) Fallback: try Firebase Auth lookup and ensure a user doc exists
+    try:
+        auth_user = admin_auth.get_user_by_email(email)
     except Exception:
         return None, None
-    if len(results) != 1:
+
+    try:
+        user_ref = db.collection('users').document(auth_user.uid)
+        snap = user_ref.get()
+        if not snap.exists:
+            # Minimal profile
+            user_ref.set({
+                'uid': auth_user.uid,
+                'email': email,
+                'name': (auth_user.display_name or '').strip(),
+                'role': 'user',
+                'profilePicture': '',
+                'friends': [],
+                'createdAt': admin_fs.SERVER_TIMESTAMP
+            })
+            return auth_user.uid, {
+                'uid': auth_user.uid,
+                'email': email,
+                'name': (auth_user.display_name or '').strip(),
+                'role': 'user',
+                'profilePicture': '',
+                'friends': []
+            }
+        else:
+            data = snap.to_dict() or {}
+            return snap.id, data
+    except Exception:
         return None, None
-    doc = results[0]
-    return doc.id, doc.to_dict() or {}
 
 
 @friends_bp.route('/api/friends/request', methods=['POST'])
