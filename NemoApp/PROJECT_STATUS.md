@@ -7,7 +7,7 @@ This document tracks backend progress against the agreed MVP scope. Links point 
 ## Summary
 
 - Backend stack online (Flask + Firebase Admin).
-- Auth flow working end-to-end (register, verify token, login).
+- Auth flow working end-to-end (frontend signup via Firebase Auth, backend login + verify token).
 - Events API implemented (list + details) on Firestore.
 - Bookings implemented with atomic capacity checks:
   - Individual booking
@@ -19,19 +19,18 @@ This document tracks backend progress against the agreed MVP scope. Links point 
 - Normal users have Firebase-generated random, immutable UIDs; these are the canonical identifiers persisted across the backend and Firestore.
 - Admin accounts may optionally be provisioned via the Firebase Admin SDK with custom, human-readable UIDs (e.g., "admin1"). Such provisioning is outside normal user signup; ensure users/{uid}.role = "admin".
 - Signup/Login flow:
-  - Frontend signs in users via Firebase Authentication (email + password) to obtain an ID token.
-  - Backend does not receive raw passwords; it verifies the ID token and extracts the UID on each request via [python.verify()](NemoApp/backend/api/auth.py:62) and decorators in [python.require_auth()](NemoApp/backend/utils/decorators.py:8).
-  - Registration endpoint creates the Auth user and users/{uid} profile: [python.register()](NemoApp/backend/api/auth.py:6).
+  - Frontend performs signup/login via Firebase Authentication (email + password) to obtain an ID token.
+  - Backend never receives raw passwords; it verifies the ID token and extracts the UID on each request via [python.verify()](NemoApp/backend/api/auth.py:50) and decorators in [python.require_auth()](NemoApp/backend/utils/decorators.py:12).
+  - On first successful login, the backend auto-creates users/{uid} in Firestore if missing.
 
 ## Kanban Alignment (MVP)
 
 Completed
 - [x] KAN-5 Research Firebase setup
 - [x] KAN-6 Integrate Firebase with backend
-- [x] KAN-7 Auth APIs (register/login/verify) → [backend/api/auth.py](NemoApp/backend/api/auth.py)
-  - [python.register()](NemoApp/backend/api/auth.py:6)
-  - [python.login()](NemoApp/backend/api/auth.py:34)
-  - [python.verify()](NemoApp/backend/api/auth.py:62)
+- [x] KAN-7 Auth APIs (login/verify) → [backend/api/auth.py](NemoApp/backend/api/auth.py)
+  - [python.login()](NemoApp/backend/api/auth.py:23)
+  - [python.verify()](NemoApp/backend/api/auth.py:50)
 - [x] KAN-8 Events list API → [backend/api/events.py](NemoApp/backend/api/events.py)
   - [python.list_events()](NemoApp/backend/api/events.py:12)
 - [x] KAN-9 Event details API → [python.get_event()](NemoApp/backend/api/events.py:57)
@@ -63,9 +62,8 @@ Pending (in recommended order)
 ## Implemented Endpoints (Backend)
 
 Auth
-- POST /api/auth/register → [python.register()](NemoApp/backend/api/auth.py:6)
-- POST /api/auth/login → [python.login()](NemoApp/backend/api/auth.py:34)
-- GET /api/auth/verify → [python.verify()](NemoApp/backend/api/auth.py:62)
+- POST /api/auth/login → [python.login()](NemoApp/backend/api/auth.py:23)
+- GET /api/auth/verify → [python.verify()](NemoApp/backend/api/auth.py:50)
 
 Events
 - GET /api/events → [python.list_events()](NemoApp/backend/api/events.py:12)

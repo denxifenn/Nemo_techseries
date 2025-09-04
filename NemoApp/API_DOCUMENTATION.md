@@ -30,31 +30,10 @@ All responses follow this structure:
 
 ### 1. Authentication
 
-#### Register User
-```
-POST /api/auth/register
-```
-**Body:**
-```json
-{
-  "email": "user@example.com",
-  "password": "password123",
-  "name": "John Doe"
-}
-```
-**Response:**
-```json
-{
-  "success": true,
-  "uid": "firebase_uid",
-  "message": "User registered successfully"
-}
-```
-
-Notes:
-- uid is the Firebase Auth UID. For normal users this is a random alphanumeric string and cannot be changed later.
-- Admins can be created via the Firebase Admin SDK with a custom uid if desired; such provisioning is separate from this endpoint.
-- After registration, clients should sign in via Firebase Auth (email+password) to obtain an ID token for subsequent API calls. The backend accepts ID tokens and does not handle raw passwords.
+#### Signup (Frontend via Firebase Auth)
+- Users sign up in the frontend using Firebase Auth (email/password). The backend never receives raw passwords.
+- Firebase issues an immutable UID per user (random alphanumeric string).
+- Admin/service accounts can still be provisioned via the Firebase Admin SDK out-of-band if needed.
 #### Login
 ```
 POST /api/auth/login
@@ -77,6 +56,8 @@ POST /api/auth/login
   }
 }
 ```
+Notes:
+- On first successful login, the backend auto-creates the user's Firestore profile document if it does not already exist.
 
 #### Verify Token
 ```
@@ -100,7 +81,10 @@ Headers: Authorization: Bearer <token>
 GET /api/events
 GET /api/events?category=sports
 GET /api/events?status=upcoming
+GET /api/events?limit=20
 ```
+Note:
+- Optional query parameters: category, status, limit (default 20, max 50).
 **Response:**
 ```json
 {
@@ -177,19 +161,26 @@ Headers: Authorization: Bearer <token>
 POST /api/bookings/group
 Headers: Authorization: Bearer <token>
 ```
-**Body:**
+**Body (supports both):**
 ```json
 {
   "eventId": "event_id",
-  "groupMembers": ["friend_uid1", "friend_uid2"]
+  "groupMembers": ["friend_uid1", "friend_uid2"],
+  "groupMemberNames": ["Alice", "Bob"]
 }
 ```
+Notes:
+- The initiator (current user) is automatically included for UID-based bookings.
+- Capacity is enforced atomically across both user UIDs and guest names.
+- Guest names are stored on the event as guestEntries and on the booking as guestNames.
+
 **Response:**
 ```json
 {
   "success": true,
   "bookingId": "booking_id",
-  "message": "Group booking confirmed for 3 people"
+  "joinedCount": 3,
+  "message": "Group booking confirmed for 3 member(s) added"
 }
 ```
 
@@ -215,7 +206,8 @@ Headers: Authorization: Bearer <token>
         "time": "14:00"
       }
     }
-  ]
+  ],
+  "count": 1
 }
 ```
 
@@ -259,7 +251,10 @@ Headers: Authorization: Bearer <token>
 ```json
 {
   "success": true,
-  "message": "Profile updated"
+  "message": "Profile updated",
+  "updated": {
+    "name": "New Name"
+  }
 }
 ```
 
@@ -322,13 +317,28 @@ Headers: Authorization: Bearer <token>
       "email": "friend@example.com",
       "profilePicture": "image_url"
     }
-  ]
+  ],
+  "count": 1
 }
 ```
 
 ---
 
 ### 6. Admin (Admin Role Required)
+
+#### Health Check
+```
+GET /api/admin/health
+Headers: Authorization: Bearer <token>
+```
+**Response:**
+```json
+{
+  "success": true,
+  "user": "admin_uid",
+  "message": "Admin routes available"
+}
+```
 
 #### Create Event
 ```
@@ -377,7 +387,7 @@ Headers: Authorization: Bearer <token>
 {
   "success": true,
   "suggestionId": "suggestion_id",
-  "message": "Suggestion submitted successfully"
+  "message": "Suggestion submitted"
 }
 ```
 

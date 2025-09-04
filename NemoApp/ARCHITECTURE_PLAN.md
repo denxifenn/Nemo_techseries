@@ -50,7 +50,7 @@ A community platform for migrant workers in Singapore to discover events, book f
   eventId: "auto_generated",
   title: "Football Match",
   description: "Friendly football match...",
-  category: "sports" | "workshop" | "social",
+  category: "sports" | "workshop" | "social" | "cultural",
   imageUrl: "https://...",
   location: "Kallang Stadium",
   date: "2025-03-15",
@@ -93,10 +93,7 @@ A community platform for migrant workers in Singapore to discover events, book f
 {
   suggestionId: "auto_generated",
   userId: "user_uid",
-  eventTitle: "Cooking Class",
-  eventDescription: "Learn to cook...",
-  category: "workshop",
-  status: "pending",
+  text: "Any feedback or suggestions for future events...",
   createdAt: timestamp
 }
 ```
@@ -104,41 +101,30 @@ A community platform for migrant workers in Singapore to discover events, book f
 ## API Endpoints Structure
 
 ### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login user
-- `POST /api/auth/logout` - Logout user
+- `POST /api/auth/login` - Token verification after frontend Firebase Auth (email/password). Backend never receives passwords.
 - `GET /api/auth/verify` - Verify token
 
 ### Events
 - `GET /api/events` - List all events (with filters)
 - `GET /api/events/:id` - Get event details
-- `POST /api/events` - Create event (admin only)
-- `PUT /api/events/:id` - Update event (admin only)
-- `DELETE /api/events/:id` - Delete event (admin only)
 
 ### Bookings
-- `POST /api/bookings` - Create booking
-- `GET /api/bookings/user/:userId` - Get user bookings
-- `PUT /api/bookings/:id` - Update booking
-- `DELETE /api/bookings/:id` - Cancel booking
-- `POST /api/bookings/team` - Create team booking
+- `POST /api/bookings/individual` - Individual booking
+- `POST /api/bookings/group` - Group booking (supports guest names)
+- `GET /api/bookings/my` - Get current user's bookings
 
 ### Users
-- `GET /api/users/profile` - Get current user profile
-- `PUT /api/users/profile` - Update profile
-- `GET /api/users/:id` - Get user by ID
+- `GET /api/profile` - Get current user profile
+- `PUT /api/profile` - Update profile
 
 ### Friends
 - `GET /api/friends` - Get friend list
-- `POST /api/friends/request` - Send friend request
+- `POST /api/friends/request` - Send friend request (by email)
 - `PUT /api/friends/request/:id` - Accept/reject request
-- `DELETE /api/friends/:id` - Remove friend
-- `GET /api/friends/requests` - Get pending requests
 
 ### Suggestions
-- `POST /api/suggestions` - Submit event suggestion
-- `GET /api/suggestions` - Get suggestions (admin)
-- `PUT /api/suggestions/:id` - Update suggestion status (admin)
+- `POST /api/suggestions` - Submit suggestion (free-text)
+- `GET /api/suggestions` - List suggestions (admin)
 
 ## Frontend Components Structure (MVP)
 

@@ -55,7 +55,7 @@ def create_event(current_user):
     imageUrl = str(body.get("imageUrl")).strip() if body.get("imageUrl") else ""
 
     # Category whitelist (MVP)
-    allowed_categories = {"sports", "workshop", "social"}
+    allowed_categories = {"sports", "workshop", "social", "cultural"}
     if category not in allowed_categories:
         return jsonify({"success": False, "error": f"Invalid category. Allowed: {', '.join(sorted(allowed_categories))}"}), 400
 

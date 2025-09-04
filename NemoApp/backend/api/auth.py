@@ -4,21 +4,7 @@ from datetime import datetime
 
 auth_bp = Blueprint('auth', __name__)
 
-@auth_bp.route('/api/auth/register', methods=['POST'])
-def register():
-    data = request.get_json() or {}
-    email = data.get('email')
-    password = data.get('password')
-    name = data.get('name')
-
-    if not email or not password or not name:
-        return jsonify({'success': False, 'error': 'Missing required fields'}), 400
-
-    try:
-        uid = FirebaseService.create_user(email, password, name)
-        return jsonify({'success': True, 'uid': uid, 'message': 'User registered successfully'}), 201
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 400
+# Deprecated: Backend registration removed. Use Firebase Auth on frontend for signup.
 
 @auth_bp.route('/api/auth/login', methods=['POST'])
 def login():
@@ -36,12 +22,11 @@ def login():
     if not uid:
         return jsonify({'success': False, 'error': 'Invalid token'}), 401
 
-    user = FirebaseService.get_user(uid)
-    if not user:
-        return jsonify({'success': False, 'error': 'User not found'}), 404
+    # Ensure user profile exists; auto-provision on first login
+    user = FirebaseService.ensure_user_doc(uid)
 
     return jsonify({'success': True, 'user': {
-        'uid': user.get('uid'),
+        'uid': user.get('uid') or uid,
         'email': user.get('email'),
         'name': user.get('name'),
         'role': user.get('role', 'user')

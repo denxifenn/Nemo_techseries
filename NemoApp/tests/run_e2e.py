@@ -221,7 +221,8 @@ def find_event_id(title_contains=None, exclude_full=True, prefer_category=None):
 def main():
     results = {}
     results['register_user'] = {"status": 200, "body": {"skipped": True, "reason": "using seeded user1"}}
-    token_user, uid_user = get_id_token(EMAIL_USER, PASSWORD_USER)
+    # Use robust sign-in with fallback to custom token if password sign-in is disabled
+    token_user, uid_user = get_id_token_with_fallback(EMAIL_USER, PASSWORD_USER)
     results['idToken_user'] = {"uid": uid_user, "idToken_len": len(token_user or '')}
     code, body = api('GET', '/api/auth/verify', token_user)
     results['verify_user'] = {"status": code, "body": body}
@@ -255,7 +256,7 @@ def main():
     results['admin_create_event'] = {"status": code, "body": body}
     # Use seeded user2 (email+password)
     results['register_friend'] = {"status": 200, "body": {"skipped": True, "reason": "using seeded user2"}}
-    token_friend, uid_friend = get_id_token(EMAIL_FRIEND, PASSWORD_FRIEND)
+    token_friend, uid_friend = get_id_token_with_fallback(EMAIL_FRIEND, PASSWORD_FRIEND)
 
     # Ensure there is a pending friend request from user1 -> user2 (idempotent across reruns)
     req_id = find_pending_friend_request(uid_user, uid_friend)

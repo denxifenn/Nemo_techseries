@@ -8,9 +8,8 @@ This document defines the canonical schemas for the MVP Firestore collections, i
 
 All schemas align with the implemented backend code. Endpoint implementations referenced below are in:
 - [backend/api/auth.py](NemoApp/backend/api/auth.py)
-  - [python.register()](NemoApp/backend/api/auth.py:6)
-  - [python.login()](NemoApp/backend/api/auth.py:34)
-  - [python.verify()](NemoApp/backend/api/auth.py:62)
+  - [python.login()](NemoApp/backend/api/auth.py:23)
+  - [python.verify()](NemoApp/backend/api/auth.py:50)
 - [backend/api/events.py](NemoApp/backend/api/events.py)
   - [python.list_events()](NemoApp/backend/api/events.py:12)
   - [python.get_event()](NemoApp/backend/api/events.py:57)
@@ -41,11 +40,11 @@ Security decorators (Auth/Admin):
 ---
  
 UID Policy and Signup/Login Flow
-- Normal users receive Firebase-generated random, immutable UIDs on registration. These are used as document IDs in users/{uid} and throughout Firestore/backend.
+- Normal users receive Firebase-generated random, immutable UIDs on registration/sign-in. These are used as document IDs in users/{uid} and throughout Firestore/backend.
 - Admin accounts may be provisioned externally via the Firebase Admin SDK with a custom, human-readable UID (e.g., "admin1"). This provisioning is outside normal user signup; ensure users/{uid}.role = "admin".
-- Signup/login:
-  1) Register via POST /api/auth/register → backend creates the Firebase Auth user and users/{uid}. See [python.register()](NemoApp/backend/api/auth.py:6).
-  2) Login on the frontend (Firebase Web SDK or REST) with email+password to obtain an ID token. The backend never receives raw passwords; it only verifies ID tokens on requests. See [python.login()](NemoApp/backend/api/auth.py:34) and [python.verify()](NemoApp/backend/api/auth.py:62).
+- Signup/login (finalized):
+  - Frontend performs signup and login using Firebase Auth (email/password) to obtain an ID token. The backend never receives raw passwords.
+  - Backend verifies ID tokens on requests. On the first successful login, the backend auto-creates users/{uid} if it does not exist. See [python.login()](NemoApp/backend/api/auth.py:23) and [python.verify()](NemoApp/backend/api/auth.py:50).
  
 ## 1) users (KAN-27)
  
@@ -82,7 +81,7 @@ Invariants:
 - friends array contains unique UIDs, no self-references.
 
 Maintained by:
-- Created on register: [python.register()](NemoApp/backend/api/auth.py:6)
+- Created automatically on first backend login (auto-provision) via ensure_user_doc in [backend/services/firebase_service.py](NemoApp/backend/services/firebase_service.py) called from [python.login()](NemoApp/backend/api/auth.py:23)
 - Updated on profile changes: [python.update_profile()](NemoApp/backend/api/profile.py:29)
 - Mutated with ArrayUnion on friend accept: [python.handle_friend_request()](NemoApp/backend/api/friends.py:63)
 
@@ -98,7 +97,7 @@ Documents keyed by Firestore auto-ID.
 Required fields:
 - title: string
 - description: string
-- category: "sports" | "workshop" | "social"
+- category: "sports" | "workshop" | "social" | "cultural"
 - location: string
 - date: string "YYYY-MM-DD"
 - time: string "HH:MM" 24-hour

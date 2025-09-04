@@ -36,8 +36,7 @@ UIDs and Signup/Login Policy
 - Email + password sign-in is handled on the client (Firebase Web SDK or REST). The backend never receives raw passwords; it only verifies Firebase ID tokens sent in the Authorization header.
 
 01) Obtain a Firebase idToken (normal user)
-1. Register user (only once):
-   curl -X POST http://localhost:5000/api/auth/register -H "Content-Type: application/json" -d '{ "email":"you@example.com", "password":"Password123!", "name":"Your Name" }'
+1. Sign up via Firebase Auth on the frontend (email/password). Do not call the backend for registration.
 2. Get Web API Key:
    - Firebase Console → Project settings → General → “Web API Key”
 3. Sign in via Firebase REST to get idToken (replace YOUR_WEB_API_KEY):
@@ -138,7 +137,6 @@ Success criteria:
 - 401 Unauthorized → missing/invalid Authorization header
 - 403 Admin access required → non-admin on admin routes
 - 400 Bad Request
-  - register: missing fields
   - bookings: event full, already joined, only old participants
   - admin create: missing fields, invalid category/date/time
 - 404 Not Found → invalid event or friend request id
@@ -155,6 +153,6 @@ Troubleshooting
 - Token expired:
   - Re-run the REST sign-in command to get a fresh idToken.
 - “User not found” for friends:
-  - Recipient must have registered via backend so a users/{uid} doc exists.
+  - Recipient must exist in Firebase Auth or have signed in at least once so the backend can auto-provision a users/{uid} profile on first login. The API also attempts to resolve by email via Firebase Auth and create a minimal users/{uid} document if missing.
 - Capacity errors:
   - Confirm event.maxParticipants and currentParticipants in the event doc.

@@ -78,5 +78,76 @@ class FirebaseService:
         return None
 
     @staticmethod
+    def ensure_user_doc(uid: str, email: str | None = None, name: str | None = None) -> dict:
+        """
+        Ensure a Firestore users/{uid} document exists.
+        - If missing: create with sensible defaults (role=user, friends=[], profilePicture='')
+          using provided email/name or fetched via Admin SDK.
+        - If exists: backfill core fields (uid, email/name if absent, role default) without clobbering others.
+        Returns the user document as dict.
+        """
+        try:
+            doc_ref = db.collection('users').document(uid)
+            snap = doc_ref.get()
+            if not snap.exists:
+                # Attempt to enrich from Admin SDK if not provided
+                if not email or not name:
+                    try:
+                        user = auth.get_user(uid)
+                        email = email or getattr(user, 'email', None)
+                        name = name or getattr(user, 'display_name', None)
+                    except Exception:
+                        pass
+
+                user_data = {
+                    'uid': uid,
+                    'email': email or '',
+                    'name': (name or '').strip(),
+                    'role': 'user',
+                    'profilePicture': '',
+                    'friends': [],
+                    'createdAt': FirebaseService.timestamp_now()
+                }
+                doc_ref.set(user_data)
+                ret = dict(user_data)
+                ret['id'] = uid
+                return ret
+
+            # If exists, merge minimal defaults for missing fields
+            data = snap.to_dict() or {}
+            updates = {}
+            if 'uid' not in data:
+                updates['uid'] = uid
+            if email and not data.get('email'):
+                updates['email'] = email
+            if name and not data.get('name'):
+                updates['name'] = (name or '').strip()
+            if not data.get('role'):
+                updates['role'] = 'user'
+            if 'friends' not in data:
+                updates['friends'] = []
+            if 'profilePicture' not in data:
+                updates['profilePicture'] = ''
+
+            if updates:
+                doc_ref.set(updates, merge=True)
+                data.update(updates)
+
+            data['id'] = snap.id
+            return data
+        except Exception:
+            # Fallback minimal representation
+            minimal = {
+                'uid': uid,
+                'email': email or '',
+                'name': (name or '').strip(),
+                'role': 'user',
+                'friends': [],
+                'profilePicture': ''
+            }
+            minimal['id'] = uid
+            return minimal
+
+    @staticmethod
     def timestamp_now():
         return datetime.utcnow()
