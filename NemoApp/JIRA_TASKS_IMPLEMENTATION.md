@@ -562,7 +562,7 @@ def get_suggestions():
         suggestions.append(suggestion)
     return jsonify(suggestions)
 ```
-
+## Ignored at the moment
 ## Implementation Priority Order
 
 ### Phase 1: Foundation (Days 1-3)

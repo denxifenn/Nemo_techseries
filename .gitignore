@@ -78,3 +78,4 @@ firebase-debug.log
 # Firebase service account key
 **/firebase-admin-key.json
 **/firebase-debug.log
+**/firebase-config.js

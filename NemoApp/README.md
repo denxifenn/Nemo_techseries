@@ -6,8 +6,6 @@ A full-stack application with Vue.js frontend, Flask backend, and Firebase integ
 
 - `frontend/`: Vue 3 application
 - `backend/`: Flask application
-- `firebase/`: Firebase configuration files
-
 ## Setup
 
 ### Frontend
