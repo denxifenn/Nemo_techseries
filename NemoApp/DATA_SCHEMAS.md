@@ -243,30 +243,24 @@ Documents keyed by Firestore auto-ID.
 
 Required fields:
 - userId: uid (submitter)
-- eventTitle: string
-- eventDescription: string
-- category: "sports" | "workshop" | "social"
-- status: "pending" (MVP)
+- text: string (1..2000)
 - createdAt: timestamp
 
 Example:
 ```json
 {
   "userId": "u_123",
-  "eventTitle": "Cooking Class",
-  "eventDescription": "Learn local dishes",
-  "category": "workshop",
-  "status": "pending",
+  "text": "Please organise more football friendlies on Sundays evening.",
   "createdAt": "2025-03-01T13:00:00Z"
 }
 ```
 
 Maintained by:
-- Create: [python.create_suggestion()](NemoApp/backend/api/suggestions.py:12)
-- Admin list: [python.list_suggestions()](NemoApp/backend/api/suggestions.py:44)
+- Create (free-text only): [python.create_suggestion()](NemoApp/backend/api/suggestions.py:10)
+- Admin list: [python.list_suggestions()](NemoApp/backend/api/suggestions.py:42)
 
 Indexes:
-- orderBy createdAt desc for admin review queue (composite index might be prompted by Firestore).
+- orderBy createdAt desc for admin review queue.
 
 ---
 
