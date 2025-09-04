@@ -86,6 +86,53 @@
       </div>
     </div>
 
+    <!-- Region Section -->
+    <div class="filter-section">
+      <h4>Region</h4>
+      <div class="checkbox-group">
+        <div class="field-checkbox">
+          <Checkbox
+            id="North"
+            v-model="filters.region"
+            value="North"
+          />
+          <label for="North">North</label>
+        </div>
+        <div class="field-checkbox">
+          <Checkbox
+            id="South"
+            v-model="filters.region"
+            value="South"
+          />
+          <label for="South">South</label>
+        </div>
+        <div class="field-checkbox">
+          <Checkbox
+            id="East"
+            v-model="filters.region"
+            value="East"
+          />
+          <label for="East">East</label>
+        </div>
+        <div class="field-checkbox">
+          <Checkbox
+            id="West"
+            v-model="filters.region"
+            value="West"
+          />
+          <label for="West">West</label>
+        </div>
+        <div class="field-checkbox">
+          <Checkbox
+            id="Central"
+            v-model="filters.region"
+            value="Central"
+          />
+          <label for="Central">Central</label>
+        </div>
+      </div>
+    </div>
+
     <!-- Action Buttons -->
     <div class="filter-actions">
       <!-- <Button
@@ -121,7 +168,8 @@ export default {
     const filters = ref({
       search: '',
       format: [],
-      type: []
+      type: [],
+      region:[]
     })
 
     // Watch for changes and emit to parent
@@ -142,7 +190,8 @@ export default {
       filters.value = {
         search: '',
         format: [],
-        type: []
+        type: [],
+        region:[]
       }
     }
 

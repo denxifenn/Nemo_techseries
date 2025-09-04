@@ -2,7 +2,7 @@
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import Card from 'primevue/card'
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import EventFilterSidebar from '../components/EventFilterSidebar.vue'
 
 export default {
@@ -22,7 +22,8 @@ export default {
     const currentFilters = ref({
       search: '',
       format: [],
-      type: []
+      type: [],
+      region: []
     })
 
     // Sample events data - replace with your API call
@@ -35,6 +36,7 @@ export default {
         description: 'Annual basketball tournament for all skill levels.',
         format: 'indoor',
         type: 'sports',
+        region: 'North',
         image: 'https://via.placeholder.com/300x200'
       },
       {
@@ -45,6 +47,7 @@ export default {
         description: 'Unique art exhibition featuring local artists.',
         format: 'indoor',
         type: 'arts',
+        region: 'South',
         image: 'https://via.placeholder.com/300x200'
       },
       {
@@ -55,6 +58,7 @@ export default {
         description: 'Learn to cook traditional dishes from home.',
         format: 'online',
         type: 'culture',
+        region: 'North',
         image: 'https://via.placeholder.com/300x200'
       },
       {
@@ -65,6 +69,7 @@ export default {
         description: 'Morning yoga session in the park.',
         format: 'outdoor',
         type: 'sports',
+        region: 'Central',
         image: 'https://via.placeholder.com/300x200'
       },
       {
@@ -75,6 +80,7 @@ export default {
         description: 'Two-day music festival featuring various artists.',
         format: 'outdoor',
         type: 'arts',
+        region: 'West',
         image: 'https://via.placeholder.com/300x200'
       },
       {
@@ -85,6 +91,7 @@ export default {
         description: 'Learn about the latest technology trends.',
         format: 'online',
         type: 'culture',
+        region: 'East',
         image: 'https://via.placeholder.com/300x200'
       }
     ])
@@ -128,21 +135,14 @@ export default {
         )
       }
 
-      return filtered
-    })
+      // Filter by region
+      if (currentFilters.value.region.length > 0) {
+        filtered = filtered.filter(event =>
+          currentFilters.value.region.includes(event.region)
+        )
+      }
 
-    onMounted(async () => {
-      await nextTick()
-      if (eventsGridRef.value) {
-        const cards = eventsGridRef.value.children
-        console.log('Number of event cards:', cards.length)
-        for (let i = 0; i < cards.length; i++) {
-          console.log(`Card ${i+1} height:`, cards[i].offsetHeight)
-        }
-      }
-      if (heroRef.value) {
-        console.log('Hero height:', heroRef.value.offsetHeight)
-      }
+      return filtered
     })
 
     return {
@@ -219,8 +219,9 @@ export default {
               <template #content>
                 <p class="event-description">{{ event.description }}</p>
                 <div class="event-tags">
-                  <Tag :value="event.format" severity="info" class="format-tag" />
-                  <Tag :value="event.type" severity="success" class="type-tag" />
+                  <Tag :value="event.format" severity="secondary" class="format-tag" />
+                  <Tag :value="event.type" severity="secondary" class="format-tag" />
+                  <Tag :value="event.region" severity="secondary" class="format-tag" />
                 </div>
               </template>
               <template #footer>
@@ -410,11 +411,7 @@ export default {
 }
 
 .format-tag {
-  background-color: #3b82f6 !important;
-}
-
-.type-tag {
-  background-color: #10b981 !important;
+  background-color: lightblue !important;
 }
 
 .signup-btn {
