@@ -1,7 +1,10 @@
-from flask import Blueprint, jsonify, request
+import requests
+from flask import Flask, Blueprint, jsonify, request
 from utils.decorators import require_auth, require_admin
 from services.firebase_service import db
 from firebase_admin import firestore as admin_fs
+
+app = Flask(__name__)
 
 # Suggestions Blueprint (MVP) - Firestore-backed create/list
 
@@ -14,9 +17,7 @@ def create_suggestion(current_user):
     Submit an event suggestion.
     Body:
     {
-      "title": "Cooking Class",
       "description": "Learn to cook local dishes",
-      "category": "workshop"   // allowed: sports|workshop|social
     }
     Creates a 'suggestions' document with status = 'pending'.
     """
@@ -57,11 +58,15 @@ def list_suggestions(current_user):
     """
     try:
         out = []
-        for doc in db.collection('suggestions').order_by('createdAt', direction=admin_fs.Query.DESCENDING).stream():
-            s = doc.to_dict() or {}
-            s['id'] = doc.id
 
-            # Attach user display info if possible
+        # Retrieve all suggestions ordered by `createdAt`
+        suggestions = db.collection('suggestions').order_by('createdAt', direction=admin_fs.Query.DESCENDING).stream()
+        
+        # Iterate over suggestions and append user data
+        for doc in suggestions:
+            s = doc.to_dict() or {}
+
+            # Attach user display info if available
             uid = s.get('userId')
             if uid:
                 user_snap = db.collection('users').document(uid).get()
@@ -72,9 +77,12 @@ def list_suggestions(current_user):
                         'name': u.get('name'),
                         'email': u.get('email')
                     }
+                else:
+                    s['user'] = {'error': 'User data not found'}
 
             out.append(s)
 
         return jsonify({'success': True, 'suggestions': out, 'count': len(out)}), 200
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+    except requests.exceptions.RequestException as e:
+            return jsonify({'error': f'API request failed: {e}'}), 500
+    

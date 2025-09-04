@@ -80,7 +80,7 @@ def seed_events():
 
     sample_events: List[Dict] = [
         {
-            "title": "Football Match",
+            "title": "",
             "description": "Friendly 5-a-side match.",
             "category": "sports",
             "imageUrl": "",
@@ -174,12 +174,73 @@ def seed_friend_requests():
     else:
         print("Friend request already exists (pending).")
 
+def seed_suggestions():
+    """
+    Seed a suggestion from user_test_001 to admin_test_001 with restricted status values.
+    """
+    now = datetime.utcnow()
+    suggestions_col = db.collection("suggestions")
+    
+    # Example suggestion data
+    suggestions = [
+        {
+            # "title": "Cooking Workshop",
+            "description": "Learn to cook local dishes",
+            # "category": "workshop",
+            # "status": "pending",  # Valid status
+            "createdBy": "admin_test_001",  # Admin who created the event suggestion
+            "userId": "user_test_001",  # User suggesting the event
+        },
+        {
+            # "title": "Tech Conference",
+            "description": "Join industry leaders for a tech conference",
+            # "category": "workshop",
+            # "status": "accepted",  # Valid status
+            "createdBy": "admin_test_001",  # Admin who created the event suggestion
+            "userId": "user_test_002",  # Another user suggesting the event
+        },
+        {
+            # "title": "Yoga Retreat",
+            "description": "A relaxing yoga retreat for mindfulness",
+            # "category": "sports",  # Invalid category, should return an error in POST
+            # "status": "rejected",  # Valid status
+            "createdBy": "admin_test_002",  # Admin who created the event suggestion
+            "userId": "user_test_003",  # Another user suggesting the event
+        },
+    ]
+    
+    # Get the total number of existing suggestions in the collection
+    existing_suggestions_count = len(list(suggestions_col.stream()))
+    
+    for suggestion in suggestions:
+        # Generate the new suggestion ID based on the count of existing suggestions
+        suggestion_id = f"suggest{existing_suggestions_count + 1}"
+        
+        # Add suggestion document to Firestore with the generated sequential ID
+        doc = {
+            "userId": suggestion["userId"],
+            # "eventTitle": suggestion["title"],
+            "eventDescription": suggestion["description"],
+            # "category": suggestion["category"],
+            # "status": suggestion["status"],
+            "createdBy": suggestion["createdBy"],
+            "createdAt": now
+        }
+        
+        # Insert the document into Firestore using the sequential ID
+        doc_ref = suggestions_col.document(suggestion_id).set(doc)
+        
+        # Increment the suggestion count for the next suggestion ID
+        existing_suggestions_count += 1
+        
+        print(f"Seeded suggestion with title: (UID: {suggestion_id})")
 
 def main():
     print("Initializing Firestore with sample data...")
     seed_users()
     seed_events()
     seed_friend_requests()
+    seed_suggestions()
     print("Done. You can now implement Firestore logic in blueprints and query these documents.")
 
 

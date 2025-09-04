@@ -14,9 +14,6 @@ def initialize_firebase():
     # Path to service account key (relative to backend/)
     SERVICE_ACCOUNT_PATH = os.getenv("SERVICE_ACCOUNT_PATH")
 
-    if not SERVICE_ACCOUNT_PATH:
-        raise ValueError("Environment variable SERVICE_ACCOUNT_PATH is not set")
-    
     if not firebase_admin._apps:
         if not os.path.exists(SERVICE_ACCOUNT_PATH):
             raise FileNotFoundError(f"Firebase service account key not found at {SERVICE_ACCOUNT_PATH}")
@@ -36,7 +33,7 @@ class FirebaseService:
         Returns the created user's UID.
         """
         try:
-            user = auth.create_user(
+            user = auth.create_user( 
                 email=email,
                 password=password,
                 display_name=name
