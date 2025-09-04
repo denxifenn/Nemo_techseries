@@ -140,7 +140,7 @@ const onFormSubmit = ({ valid }) => {
 }
 
 .login-box {
-  background-color: orange;
+  background-color: rgba(255, 166, 0);
   padding: 5rem;
   border-radius: 8px;
   width: 600px;         /* fixed width */
