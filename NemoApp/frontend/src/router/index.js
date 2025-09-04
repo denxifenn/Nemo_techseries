@@ -8,6 +8,7 @@ import EventSuggestion from '../views/EventSuggestion.vue'
 import Profile from '../views/Profile.vue'
 import Friends from '../views/Friends.vue'
 import FriendInfo from '../views/FriendInfo.vue'
+import ApiTester from '../views/ApiTester.vue'
 
 const routes = [
   {
@@ -58,6 +59,11 @@ const routes = [
     path: '/friend-info',
     name: 'FriendInfo',
     component: FriendInfo
+  },
+  {
+    path: '/api-tester',
+    name: 'ApiTester',
+    component: ApiTester
   }
 ]
 
