@@ -4,14 +4,18 @@ from firebase_admin import exceptions as firebase_exceptions
 from datetime import datetime
 import os
 
-# Path to service account key (relative to backend/)
-SERVICE_ACCOUNT_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'firebase', 'firebase-admin-key.json')
+# Path to service account key (override with env FIREBASE_CREDENTIALS_PATH)
+DEFAULT_SERVICE_ACCOUNT_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'firebase', 'firebase-admin-key.json')
+SERVICE_ACCOUNT_PATH = os.getenv('FIREBASE_CREDENTIALS_PATH', DEFAULT_SERVICE_ACCOUNT_PATH)
 
 # Initialize Firebase Admin if not already initialized
 def initialize_firebase():
     if not firebase_admin._apps:
         if not os.path.exists(SERVICE_ACCOUNT_PATH):
-            raise FileNotFoundError(f"Firebase service account key not found at {SERVICE_ACCOUNT_PATH}")
+            raise FileNotFoundError(
+                f"Firebase service account key not found at {SERVICE_ACCOUNT_PATH}. "
+                "Set FIREBASE_CREDENTIALS_PATH to the absolute path of your service account JSON."
+            )
         cred = credentials.Certificate(SERVICE_ACCOUNT_PATH)
         firebase_admin.initialize_app(cred)
     return firestore.client()

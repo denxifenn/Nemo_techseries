@@ -1,6 +1,6 @@
 # Nemo Project - Status Checklist
 
-Last updated: 2025-09-03 (UTC+8)
+Last updated: 2025-09-04 (UTC+8)
 
 This document tracks backend progress against the agreed MVP scope. Links point to the implemented files and key functions.
 
@@ -12,7 +12,7 @@ This document tracks backend progress against the agreed MVP scope. Links point 
 - Bookings implemented with atomic capacity checks:
   - Individual booking
   - Group booking supports existing user UIDs AND purely guest names via "groupMemberNames" (no login needed for those guests). Guest name seats stored as event.guestEntries.
-- Profiles (view/update), Friends (send/accept/list), Admin Event Create, and Suggestions (submit/list) implemented.
+- Profiles (view/update), Friends (send/accept/list), Admin Event Create, and Suggestions (free-text submit/list) implemented.
 - Seed and verification scripts added for Firestore/Auth.
 
 ## Kanban Alignment (MVP)
@@ -48,14 +48,9 @@ In Progress
 - [-] Test all APIs with Postman/CLI
 
 Pending (in recommended order)
-- [ ] Collection schema codification (docs/validators):
-  - KAN-27 users
-  - KAN-28 events
-  - KAN-29 bookings
-  - KAN-30 friend_requests
-  - KAN-31 suggestions
-  - KAN-32 admin
 - [ ] Deployment to Render/Railway (MVP)
+- [ ] Finalize Postman environment variables for team sharing (baseUrl, token, adminToken, web_api_key)
+- [ ] Optional: add server-side validators module and refine error messages
 
 ## Implemented Endpoints (Backend)
 
@@ -125,6 +120,9 @@ Suggestions
 - Admin create event:
   - curl -X POST http://localhost:5000/api/admin/events -H "Authorization: Bearer ADMIN_TOKEN" -H "Content-Type: application/json" -d '{ "title":"New Event","description":"...","category":"sports","location":"Field A","date":"2025-12-31","time":"14:00","maxParticipants":20 }'
 
+- Suggestions (free-text):
+  - curl -X POST http://localhost:5000/api/suggestions -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{ "text":"Any feedback or suggestions for future events..." }'
+
 ## Changelog (Recent)
 
 - Added Firestore-backed events list/detail → [backend/api/events.py](NemoApp/backend/api/events.py)
@@ -132,7 +130,11 @@ Suggestions
 - Implemented Profiles (view/update) → [backend/api/profile.py](NemoApp/backend/api/profile.py)
 - Implemented Friends (request/accept/list) → [backend/api/friends.py](NemoApp/backend/api/friends.py)
 - Implemented Admin create event → [backend/api/admin.py](NemoApp/backend/api/admin.py)
-- Implemented Suggestions (submit/list) → [backend/api/suggestions.py](NemoApp/backend/api/suggestions.py)
+- Simplified Suggestions to free-text and synced docs/tests → [backend/api/suggestions.py](NemoApp/backend/api/suggestions.py)
 - Added Firebase verification + seed scripts → [backend/scripts](NemoApp/backend/scripts)
+- Added Firestore Security Rules and Indexes → [firebase/firestore.rules](NemoApp/firebase/firestore.rules), [firebase/firestore.indexes.json](NemoApp/firebase/firestore.indexes.json)
+- Added Postman collection for team testing → [tests/Nemo_backend.postman_collection.json](NemoApp/tests/Nemo_backend.postman_collection.json)
+- Deployment readiness: WSGI entry + gunicorn + guide → [backend/wsgi.py](NemoApp/backend/wsgi.py), [backend/requirements.txt](NemoApp/backend/requirements.txt), [DEPLOYMENT_GUIDE.md](NemoApp/DEPLOYMENT_GUIDE.md)
+- Firebase credentials path configurable via env → [backend/services/firebase_service.py](NemoApp/backend/services/firebase_service.py)
 - Hardened auth with decorators → [backend/utils/decorators.py](NemoApp/backend/utils/decorators.py)
 - Set CORS and blueprint registration → [backend/app.py](NemoApp/backend/app.py)
