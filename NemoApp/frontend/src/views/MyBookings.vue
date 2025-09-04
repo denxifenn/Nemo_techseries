@@ -1,18 +1,18 @@
 <template>
   <ProfileNavBar />
 
-  <div class="friends-page">
+  <div class="my-bookings-page">
     <!-- Page Header -->
     <div class="page-header">
-      <h1 class="page-title">MY FRIENDS</h1>
-      <p class="page-subtitle">Stay connected with your network</p>
+      <h1 class="page-title">MY BOOKINGS</h1>
+      <!-- <p class="page-subtitle"></p> -->
     </div>
 
     <!-- Friends Grid -->
     <div class="friends-grid">
       <Card 
-        v-for="friend in friends" 
-        :key="friend.id"
+        v-for="event in bookings" 
+        :key="event.id"
         class="friend-card"
       >
         <template #content>
@@ -30,10 +30,10 @@
             </div>
 
             <!-- Friend Info -->
-            <div class="friend-info">
-              <h3 class="friend-name">{{ friend.name }}</h3>
-              <p class="friend-role">{{ friend.role }}</p>
-              <p class="friend-company">{{ friend.company }}</p>
+            <div class="event-info">
+              <h3 class="event-name">{{ event.name }}</h3>
+              <p class="event-role">{{ event.role }}</p>
+              <p class="friend-company">{{ event.company }}</p>
               <div class="friend-stats">
                 <span class="stat">
                   <i class="pi pi-users"></i>
@@ -155,7 +155,7 @@ import Toast from 'primevue/toast'
 import { useToast } from 'primevue/usetoast'
 
 export default {
-  name: 'MyFriendsPage',
+  name: 'MyBookingsPage',
   components: {
     ProfileNavBar,
     Card,

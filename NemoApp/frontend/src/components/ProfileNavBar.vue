@@ -33,7 +33,7 @@ import Button from 'primevue/button';
 <style scoped>
 .sidebar {
   width: 250px;
-  height: 80vh;
+  height: 90vh;
   position: fixed; /* keeps it from affecting profile content flow */
   left: 0;
   top: 5;
@@ -55,8 +55,8 @@ import Button from 'primevue/button';
   display: flex;
   flex-direction: column;
   margin-top: auto;
-  gap:3rem;
-  margin-bottom: 2rem;
+  gap:2.5rem;
+  margin-bottom: 6rem;
 }
 
 .nav-btn .p-button {
