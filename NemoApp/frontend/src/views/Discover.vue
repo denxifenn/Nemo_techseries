@@ -2,7 +2,7 @@
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import Card from 'primevue/card'
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import EventFilterSidebar from '../components/EventFilterSidebar.vue'
 
 export default {
@@ -17,6 +17,7 @@ export default {
     const componentName = ref('Discover')
     const searchTerm = ref('')
     const heroRef = ref(null)
+    const eventsGridRef = ref(null)
     
     const currentFilters = ref({
       search: '',
@@ -41,7 +42,7 @@ export default {
         title: 'Art Exhibition',
         date: 'Oct 20, 2024',
         location: 'Gallery Downtown',
-        description: 'Contemporary art exhibition featuring local artists.',
+        description: 'Unique art exhibition featuring local artists.',
         format: 'indoor',
         type: 'arts',
         image: 'https://via.placeholder.com/300x200'
@@ -71,7 +72,7 @@ export default {
         title: 'Music Festival',
         date: 'Oct 25, 2024',
         location: 'City Park',
-        description: 'Three-day music festival featuring various artists.',
+        description: 'Two-day music festival featuring various artists.',
         format: 'outdoor',
         type: 'arts',
         image: 'https://via.placeholder.com/300x200'
@@ -130,22 +131,31 @@ export default {
       return filtered
     })
 
+    onMounted(async () => {
+      await nextTick()
+      if (eventsGridRef.value) {
+        const cards = eventsGridRef.value.children
+        console.log('Number of event cards:', cards.length)
+        for (let i = 0; i < cards.length; i++) {
+          console.log(`Card ${i+1} height:`, cards[i].offsetHeight)
+        }
+      }
+      if (heroRef.value) {
+        console.log('Hero height:', heroRef.value.offsetHeight)
+      }
+    })
+
     return {
       componentName,
       searchTerm,
       heroRef,
+      eventsGridRef,
       currentFilters,
       events,
       filteredEvents,
       handleFiltersChange,
       handleHeroSearch
     }
-
-    onMounted(() => {
-      if (heroRef.value) {
-        console.log('Hero height:', heroRef.value.offsetHeight)
-      }
-    })
   }
 }
 </script>
@@ -182,7 +192,12 @@ export default {
         </div>
 
         <!-- Events Grid -->
-        <div class="events-grid">
+      <div class="events-layout">
+        <!-- Filter Sidebar -->
+        <aside class="sidebar">
+          <EventFilterSidebar @filtersChanged="handleFiltersChange" />
+        </aside>
+        <div class="events-grid" ref="eventsGridRef">
           <div 
             v-for="event in filteredEvents" 
             :key="event.id"
@@ -218,6 +233,7 @@ export default {
             </Card>
           </div>
         </div>
+      </div>
 
         <!-- No Results Message -->
         <div v-if="filteredEvents.length === 0" class="no-results">
@@ -225,11 +241,9 @@ export default {
           <p>Try adjusting your search criteria or filters to find more events.</p>
         </div>
       </section>
-
-      <!-- Filter Sidebar -->
-      <EventFilterSidebar @filtersChanged="handleFiltersChange" />
     </div>
   </div>
+
 </template>
 
 <style scoped>
@@ -240,7 +254,6 @@ export default {
 
 .main-content {
   flex: 1;
-  margin-left: 280px; /* Match sidebar width */
 }
 
 /* Hero section */
@@ -325,16 +338,31 @@ export default {
   margin: 0;
 }
 
+.events-layout {
+  display: flex;
+  gap: 20px;
+  /* max-width: 1200px; */
+  margin: 0 auto;
+  align-items: flex-start;
+}
+
+.sidebar {
+  flex: 0 0 200px; /* fixed width */
+  top: 25px;
+  position: sticky;
+  align-self: flex-start;
+  height: fit-content;
+}
+
 .events-grid {
+  flex: 1;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 25px;
-  max-width: 1200px;
-  margin: 0 auto;
+  gap: 20px;
 }
 
 .event-card {
-  height: fit-content;
+  width: 100%;
   transition: transform 0.2s ease;
 }
 
@@ -350,7 +378,6 @@ export default {
 
 .event-image img {
   width: 100%;
-  height: 100%;
   object-fit: cover;
 }
 
