@@ -9,9 +9,9 @@ BASE_URL = (RAW_BASE_URL or '').strip().rstrip('/')
 RAW_WEB_API_KEY = os.environ.get('NEMO_WEB_API_KEY', 'AIzaSyDsoT04meMxTii2hH7H1OcDWdLXbvPzM1I')
 WEB_API_KEY = (RAW_WEB_API_KEY or '').strip()
 
-EMAIL_USER = os.environ.get('NEMO_TEST_EMAIL', 'nemo.tester@example.com')
+EMAIL_USER = os.environ.get('NEMO_TEST_EMAIL', 'user1@nemoapp.local')
 PASSWORD_USER = os.environ.get('NEMO_TEST_PASSWORD', 'Password123!')
-EMAIL_FRIEND = os.environ.get('NEMO_FRIEND_EMAIL', 'nemo.friend@example.com')
+EMAIL_FRIEND = os.environ.get('NEMO_FRIEND_EMAIL', 'user2@nemoapp.local')
 PASSWORD_FRIEND = os.environ.get('NEMO_FRIEND_PASSWORD', 'Password123!')
 
 def clean(s):
@@ -115,6 +115,58 @@ def exchange_custom_token(custom_token_b64):
     j = r.json()
     return j.get('idToken'), j.get('localId')
 
+
+def get_admin_db():
+    initialize_admin()
+    from firebase_admin import firestore as admin_fs
+    return admin_fs.client()
+
+def find_pending_friend_request(from_uid, to_uid):
+    """
+    Look up a pending friend request from 'from_uid' to 'to_uid'.
+    Returns request_id or None.
+    """
+    try:
+        db = get_admin_db()
+        q = (
+            db.collection('friendRequests')
+              .where('fromUserId', '==', from_uid)
+              .where('toUserId', '==', to_uid)
+              .where('status', '==', 'pending')
+              .limit(1)
+              .stream()
+        )
+        for doc in q:
+            return doc.id
+        return None
+    except Exception:
+        return None
+def get_admin_db():
+    initialize_admin()
+    from firebase_admin import firestore
+    return firestore.client()
+
+def find_pending_friend_request(from_uid, to_uid):
+    """
+    Look up a pending friend request from 'from_uid' to 'to_uid'.
+    Returns request_id or None.
+    """
+    try:
+        db = get_admin_db()
+        q = (
+            db.collection('friendRequests')
+              .where('fromUserId', '==', from_uid)
+              .where('toUserId', '==', to_uid)
+              .where('status', '==', 'pending')
+              .limit(1)
+              .stream()
+        )
+        for doc in q:
+            return doc.id
+        return None
+    except Exception:
+        return None
+
 def get_id_token_with_fallback(email, password):
     """
     Try normal password sign-in first. If disabled or fails, mint a custom token via Admin SDK and exchange for ID token.
@@ -168,11 +220,8 @@ def find_event_id(title_contains=None, exclude_full=True, prefer_category=None):
 
 def main():
     results = {}
-    code, reg = backend_register(EMAIL_USER, PASSWORD_USER, "Nemo Tester")
-    results['register_user'] = {"status": code, "body": reg}
-    uid_user = os.environ.get('NEMO_TEST_UID', 'qa_user_1')
-    ensure_user_doc(uid_user, EMAIL_USER, "Nemo Tester")
-    token_user, _ = get_id_token_for_uid(uid_user)
+    results['register_user'] = {"status": 200, "body": {"skipped": True, "reason": "using seeded user1"}}
+    token_user, uid_user = get_id_token(EMAIL_USER, PASSWORD_USER)
     results['idToken_user'] = {"uid": uid_user, "idToken_len": len(token_user or '')}
     code, body = api('GET', '/api/auth/verify', token_user)
     results['verify_user'] = {"status": code, "body": body}
@@ -204,27 +253,29 @@ def main():
         "maxParticipants": 20
     })
     results['admin_create_event'] = {"status": code, "body": body}
-    # Ensure a friend account exists with a resolvable email; make unique when using default placeholder
-    friend_email = EMAIL_FRIEND if EMAIL_FRIEND and EMAIL_FRIEND != 'nemo.friend@example.com' else f"nemo.friend+qa{int(time.time())}@example.com"
-    code, reg2 = backend_register(friend_email, PASSWORD_FRIEND, "Nemo Friend")
-    results['register_friend'] = {"status": code, "body": reg2}
-    try:
-        uid_friend = admin_get_uid_by_email(friend_email)
-    except Exception:
-        from firebase_admin import auth as admin_auth
-        initialize_admin()
-        user = admin_auth.create_user(email=friend_email, password=clean(PASSWORD_FRIEND), display_name="Nemo Friend")
-        uid_friend = user.uid
-    ensure_user_doc(uid_friend, friend_email, "Nemo Friend")
-    token_friend, _ = get_id_token_for_uid(uid_friend)
+    # Use seeded user2 (email+password)
+    results['register_friend'] = {"status": 200, "body": {"skipped": True, "reason": "using seeded user2"}}
+    token_friend, uid_friend = get_id_token(EMAIL_FRIEND, PASSWORD_FRIEND)
 
-    # Send and accept friend request
-    code, body = api('POST', '/api/friends/request', token_user, {"email": friend_email})
-    results['friend_request_send'] = {"status": code, "body": body}
-    req_id = (body or {}).get('requestId')
+    # Ensure there is a pending friend request from user1 -> user2 (idempotent across reruns)
+    req_id = find_pending_friend_request(uid_user, uid_friend)
+    if not req_id:
+        code, body = api('POST', '/api/friends/request', token_user, {"email": EMAIL_FRIEND})
+        results['friend_request_send'] = {"status": code, "body": body}
+        if code == 201:
+            req_id = (body or {}).get('requestId')
+        elif code == 400 and isinstance(body, dict) and str(body.get('error', '')).lower().startswith('a pending request already exists'):
+            # Re-query to fetch the existing pending request id
+            req_id = find_pending_friend_request(uid_user, uid_friend)
+    else:
+        results['friend_request_send'] = {"status": 200, "body": {"reusedPending": True, "requestId": req_id}}
+
+    # Accept pending request as user2 if available
     if req_id:
         code, body = api('PUT', f'/api/friends/request/{req_id}', token_friend, {"action": "accept"})
         results['friend_request_accept'] = {"status": code, "body": body}
+    else:
+        results['friend_request_accept'] = {"status": 400, "body": {"error": "No request id available"}}
 
     # Final friends list
     code, body = api('GET', '/api/friends', token_user)

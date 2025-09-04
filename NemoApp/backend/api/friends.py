@@ -182,7 +182,13 @@ def handle_friend_request(current_user, request_id: str):
         from_ref = db.collection('users').document(from_uid)
         to_ref = db.collection('users').document(to_uid)
 
-        db.run_transaction(lambda txn: _accept_txn(txn, from_ref, to_ref, req_ref))
+        transaction = db.transaction()
+
+        @admin_fs.transactional
+        def _txn(txn):
+            _accept_txn(txn, from_ref, to_ref, req_ref)
+
+        _txn(transaction)
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
