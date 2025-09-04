@@ -361,9 +361,7 @@ Headers: Authorization: Bearer <token>
 **Body:**
 ```json
 {
-  "title": "Cooking Class",
-  "description": "Learn to cook local dishes",
-  "category": "workshop"
+  "text": "Any feedback or suggestions for future events..."
 }
 ```
 **Response:**
@@ -387,12 +385,13 @@ Headers: Authorization: Bearer <token>
   "suggestions": [
     {
       "id": "suggestion_id",
-      "userId": "user_id",
-      "userName": "John Doe",
-      "eventTitle": "Cooking Class",
-      "eventDescription": "Learn to cook...",
-      "category": "workshop",
-      "status": "pending"
+      "user": {
+        "uid": "user_id",
+        "name": "John Doe",
+        "email": "john@example.com"
+      },
+      "text": "Any feedback or suggestions for future events...",
+      "createdAt": "2025-03-01T13:00:00Z"
     }
   ]
 }

@@ -14,31 +14,24 @@ suggestions_bp = Blueprint('suggestions', __name__)
 @require_auth
 def create_suggestion(current_user):
     """
-    Submit an event suggestion.
+    Submit a free-text suggestion (no title/category/status).
     Body:
     {
       "description": "Learn to cook local dishes",
     }
-    Creates a 'suggestions' document with status = 'pending'.
+    Creates a 'suggestions' document with fields: userId, text, createdAt.
     """
     body = request.get_json(silent=True) or {}
-    title = str(body.get('title') or '').strip()
-    description = str(body.get('description') or '').strip()
-    category = str(body.get('category') or '').strip().lower()
+    text = str(body.get('text') or '').strip()
 
-    if not title or not description or not category:
-        return jsonify({'success': False, 'error': 'Missing title/description/category'}), 400
-
-    allowed = {'sports', 'workshop', 'social'}
-    if category not in allowed:
-        return jsonify({'success': False, 'error': f'Invalid category. Allowed: {", ".join(sorted(allowed))}'}), 400
+    if not text:
+        return jsonify({'success': False, 'error': 'Missing text'}), 400
+    if len(text) > 2000:
+        return jsonify({'success': False, 'error': 'Text too long (max 2000 chars)'}), 400
 
     doc = {
         'userId': current_user,
-        'eventTitle': title,
-        'eventDescription': description,
-        'category': category,
-        'status': 'pending',
+        'text': text,
         'createdAt': admin_fs.SERVER_TIMESTAMP
     }
 

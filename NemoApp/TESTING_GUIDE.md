@@ -114,12 +114,12 @@ Success criteria:
 
 09) Suggestions (KAN-23)
 - Submit suggestion (normal user):
-  curl -s -X POST http://localhost:5000/api/suggestions -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{ "title":"Cooking Class","description":"Learn local dishes","category":"workshop" }' | jq
+  curl -s -X POST http://localhost:5000/api/suggestions -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{ "text":"Any feedback or suggestions for future events..." }' | jq
 - List suggestions (admin only):
   curl -s -X GET http://localhost:5000/api/suggestions -H "Authorization: Bearer $ADMIN_TOKEN" | jq
 Success criteria:
 - POST returns 201 with suggestionId
-- Admin list shows suggestions with user info if available
+- Admin list shows suggestions with text and basic user info (name/email) if available
 
 10) Postman Setup (optional but recommended)
 - Create environment:
