@@ -3,6 +3,7 @@ from firebase_admin import credentials, firestore, auth
 from firebase_admin import exceptions as firebase_exceptions
 from datetime import datetime
 import os
+import time
 
 # Path to service account key (override with env FIREBASE_CREDENTIALS_PATH)
 DEFAULT_SERVICE_ACCOUNT_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'firebase', 'firebase-admin-key.json')
@@ -58,11 +59,26 @@ class FirebaseService:
     def verify_token(id_token: str) -> str | None:
         """
         Verify Firebase ID token. Returns uid if valid, otherwise None.
+        Handles minor clock skew by retrying once when 'Token used too early'.
         """
         try:
+            if not id_token or not isinstance(id_token, str):
+                print("[ERROR] verify_token called with empty or invalid token type")
+                return None
             decoded = auth.verify_id_token(id_token)
             return decoded.get('uid')
-        except Exception:
+        except Exception as e:
+            msg = str(e) if e else ''
+            print(f"[ERROR] verify_token failed: {msg}")
+            # Handle clock skew: token issued in the future relative to local clock
+            if "Token used too early" in msg or "clock" in msg.lower():
+                try:
+                    print("[WARN] Clock skew detected; retrying token verification after short delay...")
+                    time.sleep(2)  # small backoff to allow token 'iat' to become valid
+                    decoded = auth.verify_id_token(id_token)
+                    return decoded.get('uid')
+                except Exception as e2:
+                    print(f"[ERROR] verify_token retry failed: {e2}")
             return None
 
     @staticmethod
@@ -87,9 +103,11 @@ class FirebaseService:
         Returns the user document as dict.
         """
         try:
+            print(f"[DEBUG] ensure_user_doc called for uid: {uid}")
             doc_ref = db.collection('users').document(uid)
             snap = doc_ref.get()
             if not snap.exists:
+                print(f"[DEBUG] User document does not exist, creating new document for uid: {uid}")
                 # Attempt to enrich from Admin SDK if not provided
                 if not email or not name:
                     try:
@@ -109,6 +127,7 @@ class FirebaseService:
                     'createdAt': FirebaseService.timestamp_now()
                 }
                 doc_ref.set(user_data)
+                print(f"[DEBUG] Created new user document for uid: {uid}")
                 ret = dict(user_data)
                 ret['id'] = uid
                 return ret

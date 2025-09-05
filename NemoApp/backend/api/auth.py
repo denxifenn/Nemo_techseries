@@ -1,6 +1,9 @@
 from flask import Blueprint, request, jsonify
 from services.firebase_service import FirebaseService, db
 from datetime import datetime
+import logging
+
+logger = logging.getLogger(__name__)
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -13,18 +16,33 @@ def login():
     and send the ID token here for verification. The backend will verify token and
     return basic user info from Firestore.
     """
-    data = request.get_json() or {}
-    id_token = data.get('idToken')
-    if not id_token:
+    logger.info("POST /api/auth/login called")
+    data = request.get_json(silent=True) or {}
+    body_token = (data.get('idToken') or '').strip()
+
+    # Also support Authorization: Bearer <token> as a fallback
+    auth_header = request.headers.get('Authorization', '')
+    header_token = auth_header.replace('Bearer ', '').strip() if auth_header.startswith('Bearer ') else ''
+
+    tokens_to_try = [t for t in [body_token, header_token] if t]
+
+    if not tokens_to_try:
+        logger.warning("No token provided (neither idToken in body nor Authorization header)")
         return jsonify({'success': False, 'error': 'Missing idToken'}), 400
 
-    uid = FirebaseService.verify_token(id_token)
+    uid = None
+    for idx, tkn in enumerate(tokens_to_try, start=1):
+        try_len = len(tkn)
+        logger.info(f"Verifying token candidate #{idx} (length={try_len})")
+        uid = FirebaseService.verify_token(tkn)
+        if uid:
+            break
+
     if not uid:
         return jsonify({'success': False, 'error': 'Invalid token'}), 401
-
+    
     # Ensure user profile exists; auto-provision on first login
     user = FirebaseService.ensure_user_doc(uid)
-
     return jsonify({'success': True, 'user': {
         'uid': user.get('uid') or uid,
         'email': user.get('email'),

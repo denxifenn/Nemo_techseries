@@ -1,15 +1,35 @@
-from flask import Flask
+from flask import Flask, request
 from flask_cors import CORS
 import os
+import logging
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def create_app():
     app = Flask(__name__)
 
     # Allow frontend local origins during development
-    CORS(app, origins=['http://localhost:8080', 'http://localhost:3000'])
+    # Explicitly allow Authorization header so frontend can send Bearer tokens
+    CORS(
+        app,
+        origins=['http://localhost:8080', 'http://localhost:3000'],
+        supports_credentials=True,
+        allow_headers=['Content-Type', 'Authorization'],
+        expose_headers=['Content-Type', 'Authorization']
+    )
+
+    @app.before_request
+    def log_request_info():
+        logger.info(f"Request: {request.method} {request.url} from {request.remote_addr}")
+        if request.headers.get('Authorization'):
+            logger.info("Authorization header present")
+        else:
+            logger.info("No Authorization header")
 
     # Register blueprints (implemented in backend/api/)
     try:
