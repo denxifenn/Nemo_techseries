@@ -35,13 +35,13 @@ import Button from 'primevue/button';
   /* position:fixed; */
   width: 250px;
   height: 90vh;
-  position: fixed; /* keeps it from affecting profile content flow */
   left: 0;
   top: 5;
   background-color: #ec6212;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  position: sticky;
 
 }
 
