@@ -50,6 +50,11 @@ const items = ref([
         route: '/event-creation'
     },
     {
+        label: 'Suggest Event',
+        icon: 'pi pi-plus',
+        route: '/event-suggestion'
+    },
+    {
         label: 'Friends',
         icon: 'pi pi-users',
         route: '/friends'
