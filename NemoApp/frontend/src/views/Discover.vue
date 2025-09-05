@@ -442,10 +442,13 @@ export default {
               <template #subtitle>
                 <div class="event-meta">
                   <span class="event-date">{{ event.date }} at {{ event.startTime }} - {{ event.endTime }}</span>
-                  <span class="event-location">📍 {{ event.location }}</span>
-                  <span class="event-organiser">👤 {{ event.organiser }}</span>
-                  <span class="event-slots">🎫 {{ event.bookingSlots }} slots</span>
-                  <span class="event-price">{{ event.price === 0 ? '🆓 Free' : `💰 $${event.price}` }}</span>
+                  <span class="event-location"><span class="material-symbols-outlined">location_on</span> {{ event.location }}</span>
+                  <span class="event-organiser"><span class="material-symbols-outlined">person</span> {{ event.organiser }}</span>
+                  <span class="event-slots"><span class="material-symbols-outlined">confirmation_number</span>  {{ event.bookingSlots }}</span>
+                  <span class="event-price"><span class="material-symbols-outlined">attach_money</span>  {{ event.price }}</span>
+                  <!-- <span class="event-organiser">👤 {{ event.organiser }}</span> -->
+                  <!-- <span class="event-slots">🎫 {{ event.bookingSlots }}</span> -->
+                  <!-- <span class="event-price">{{ event.price === 0 ? '🆓 Free' : `💰 $${event.price}` }}</span> -->
                 </div>
               </template>
               <template #content>
@@ -702,6 +705,17 @@ export default {
 .no-results p {
   color: #6b7280;
   font-size: 1.1em;
+}
+
+/* Material Symbols */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-variation-settings:
+  'FILL' 0,
+  'wght' 400,
+  'GRAD' 0,
+  'opsz' 24;
+  font-size: 1rem;
 }
 
 /* Responsive design */

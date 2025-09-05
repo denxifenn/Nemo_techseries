@@ -6,9 +6,6 @@
                 <img src="@/assets/logo.svg" alt="Logo" class="logo-image" />
             </router-link>
         </div>
-        <div>
-            <h4>Nemo App</h4>
-        </div>
         <div class="menu-section">
             <Menubar :model="items">
                 <template #item="{ item, props, hasSubmenu }">
@@ -64,8 +61,10 @@ const items = ref([
 
 <style scoped>
 h4{
-    font-size: large;
+    font-size:larger;
     padding-left: 10%;
+    font-family: cursive;
+    color: #EC7600;
 }
 .profile-button {
   background-image: url('../assets/profilepic.jpg');
