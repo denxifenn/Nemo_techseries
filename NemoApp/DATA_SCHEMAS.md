@@ -122,10 +122,17 @@ Documents keyed by Firestore auto-ID.
 Required fields:
 - title: string
 - description: string
-- category: "sports" | "workshop" | "social" | "cultural"
+- format: "online" | "offline"
+- venueType: "indoor" | "outdoor" (required iff format == "offline")
+- type: "sports" | "arts" | "culture" | "music" | "performance" | "workshop" | "tours" | "other"
+- region: "north" | "south" | "east" | "west" | "central"
+- organiser: string (free-text)
 - location: string
-- date: string "YYYY-MM-DD"
-- time: string "HH:MM" 24-hour
+- date: string "YYYY-MM-DD" (single-day event)
+- startTime: string "HH:MM" 24-hour (SGT)
+- endTime: string "HH:MM" 24-hour (SGT)
+- timing: "morning" | "afternoon" | "evening" | "night" (derived from start/end in SGT)
+- price: number (SGD; allow 0 for free)
 - maxParticipants: number > 0
 - currentParticipants: number >= 0 (maintained by bookings)
 - participants: string[] of UIDs (unique)
@@ -137,17 +144,27 @@ Optional fields:
 - imageUrl: string
 - guestEntries: array of { name: string, addedBy: uid } — added by group bookings with names
 
+Computed in responses (not stored):
+- availableSlots: number = maxParticipants - currentParticipants
+
 Example:
 ```json
 {
-  "title": "Football Match",
-  "description": "Friendly game",
-  "category": "sports",
-  "imageUrl": "",
-  "location": "Kallang",
+  "title": "Community Drum Circle",
+  "description": "Learn basic rhythms together.",
+  "format": "offline",
+  "venueType": "outdoor",
+  "type": "music",
+  "region": "central",
+  "organiser": "Community Arts Group",
+  "location": "Esplanade Outdoor Theatre",
   "date": "2025-12-31",
-  "time": "14:00",
-  "maxParticipants": 20,
+  "startTime": "18:30",
+  "endTime": "20:00",
+  "timing": "evening",
+  "price": 0,
+  "imageUrl": "",
+  "maxParticipants": 50,
   "currentParticipants": 7,
   "participants": ["u_123","u_456"],
   "guestEntries": [ { "name": "Alice", "addedBy": "u_123" } ],
@@ -158,23 +175,44 @@ Example:
 ```
 
 Invariants:
-- 0 <= currentParticipants <= maxParticipants.
-- currentParticipants == |participants| + |guestEntries|.
-- participants must be unique UIDs.
-- guestEntries unique per (addedBy, lower(name)) pair.
+- Single-day event: only one `date`
+- Time order: startTime < endTime (within the same date, SGT)
+- Timing bucket derivation (SGT):
+  - morning: 06:00–11:59
+  - afternoon: 12:00–17:59
+  - evening: 18:00–21:59
+  - night: 22:00–05:59
+  If an event spans multiple buckets, use the bucket of startTime.
+- format == "online" implies venueType is absent
+- format == "offline" implies venueType in {"indoor","outdoor"}
+- price >= 0
+- 0 <= currentParticipants <= maxParticipants
+- currentParticipants == |participants| + |guestEntries|
+- participants must be unique UIDs
+- guestEntries unique per (addedBy, lower(name)) pair
 
 Maintained by:
-- Creation: [python.create_event()](NemoApp/backend/api/admin.py:22)
-- Read/list: [python.list_events()](NemoApp/backend/api/events.py:12), [python.get_event()](NemoApp/backend/api/events.py:57)
-- Capacity updates (transactional): 
+- Creation: [python.create_event()](NemoApp/backend/api/admin.py:34)
+- Read/list:
+  - [python.list_events()](NemoApp/backend/api/events.py:12)
+  - [python.get_event()](NemoApp/backend/api/events.py:64)
+- Capacity updates (transactional):
   - [python.create_individual_booking()](NemoApp/backend/api/bookings.py:16)
   - [python.create_group_booking()](NemoApp/backend/api/bookings.py:83)
 
-Indexes:
-- Composite index recommended:
-  - where category == … order by date asc, time asc
-  - where status == … order by date asc, time asc
-  - Mixed category + status filters may require composite index per Firestore prompts.
+Filters (API support to be added/extended):
+- format, type, region
+- date range: fromDate..toDate (inclusive)
+- timing: morning|afternoon|evening|night (derived)
+- price range: minPrice..maxPrice (optional)
+- category/status kept for backwards compatibility (legacy)
+
+Indexes (recommended composites; Firestore may prompt exact specs):
+- where format == … orderBy date asc, startTime asc
+- where type == … orderBy date asc, startTime asc
+- where region == … orderBy date asc, startTime asc
+- optional: where status == … orderBy date asc, startTime asc
+- optional: compound filters (format+type, type+region) as usage dictates
 
 ---
 

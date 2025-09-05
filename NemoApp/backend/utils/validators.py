@@ -274,3 +274,131 @@ def sanitize_profile_updates(body: Dict[str, Any]) -> Tuple[bool, Dict[str, Any]
         return False, "No valid fields to update"
 
     return True, updates
+
+# =========================
+# Event validators (schema)
+# =========================
+
+VALID_EVENT_FORMATS = ["online", "offline"]
+VALID_VENUE_TYPES = ["indoor", "outdoor"]
+VALID_EVENT_TYPES = ["sports", "arts", "culture", "music", "performance", "workshop", "tours", "other"]
+VALID_EVENT_REGIONS = ["north", "south", "east", "west", "central"]
+
+def validate_event_format(value):
+    if not isinstance(value, str):
+        return False, "format must be a string"
+    v = _normalize_whitespace(value).lower()
+    if v not in VALID_EVENT_FORMATS:
+        return False, f"format must be one of {VALID_EVENT_FORMATS}"
+    return True, v
+
+def validate_event_venue_type(event_format, value):
+    # Required only when format == "offline"
+    if event_format != "offline":
+        return True, None
+    if not isinstance(value, str):
+        return False, "venueType must be a string when format is offline"
+    v = _normalize_whitespace(value).lower()
+    if v not in VALID_VENUE_TYPES:
+        return False, f"venueType must be one of {VALID_VENUE_TYPES}"
+    return True, v
+
+def validate_event_type(value):
+    if not isinstance(value, str):
+        return False, "type must be a string"
+    v = _normalize_whitespace(value).lower()
+    if v not in VALID_EVENT_TYPES:
+        return False, f"type must be one of {VALID_EVENT_TYPES}"
+    return True, v
+
+def validate_event_region(value):
+    if not isinstance(value, str):
+        return False, "region must be a string"
+    v = _normalize_whitespace(value).lower()
+    if v not in VALID_EVENT_REGIONS:
+        return False, f"region must be one of {VALID_EVENT_REGIONS}"
+    return True, v
+
+def validate_date(value):
+    if not isinstance(value, str):
+        return False, "date must be a string in YYYY-MM-DD"
+    v = _normalize_whitespace(value)
+    try:
+        from datetime import datetime
+        datetime.strptime(v, "%Y-%m-%d")
+        return True, v
+    except Exception:
+        return False, "Invalid date format; expected YYYY-MM-DD"
+
+def validate_hhmm_time(value, label="time"):
+    if not isinstance(value, str):
+        return False, f"{label} must be a string in HH:MM"
+    v = _normalize_whitespace(value)
+    parts = v.split(":")
+    if len(parts) != 2:
+        return False, f"Invalid {label} format; expected HH:MM (24h)"
+    try:
+        h = int(parts[0]); m = int(parts[1])
+        if h < 0 or h > 23 or m < 0 or m > 59:
+            return False, f"Invalid {label} value; hour 0..23 and minute 0..59"
+    except Exception:
+        return False, f"Invalid {label} value; must be numeric HH:MM"
+    return True, v
+
+def derive_timing_bucket(start_time_hhmm):
+    # Timing bucket definitions (SGT-based, but hh:mm classification is sufficient)
+    ok, start = validate_hhmm_time(start_time_hhmm, "startTime")
+    if not ok:
+        return "morning"  # default fallback (should not happen after validation)
+    h = int(start.split(":")[0])
+    if 6 <= h <= 11:
+        return "morning"
+    if 12 <= h <= 17:
+        return "afternoon"
+    if 18 <= h <= 21:
+        return "evening"
+    # 22..23 or 0..5
+    return "night"
+
+def validate_price_float(value):
+    try:
+        p = float(value)
+        if p < 0:
+            return False, "price must be >= 0"
+        return True, p
+    except Exception:
+        return False, "price must be a number"
+
+def ensure_start_before_end(date_str, start_hhmm, end_hhmm):
+    # Ensure start < end within the same day
+    from datetime import datetime
+    ok_d, d = validate_date(date_str)
+    if not ok_d:
+        return False, d
+    ok_s, s = validate_hhmm_time(start_hhmm, "startTime")
+    if not ok_s:
+        return False, s
+    ok_e, e = validate_hhmm_time(end_hhmm, "endTime")
+    if not ok_e:
+        return False, e
+    try:
+        sd = datetime.strptime(f"{d} {s}", "%Y-%m-%d %H:%M")
+        ed = datetime.strptime(f"{d} {e}", "%Y-%m-%d %H:%M")
+        if not (sd < ed):
+            return False, "startTime must be earlier than endTime"
+        return True, (d, s, e)
+    except Exception:
+        return False, "Invalid date/time combination"
+
+def add_minutes_to_hhmm(hhmm, minutes):
+    # Utility: return HH:MM string plus minutes
+    parts = str(hhmm).split(":")
+    try:
+        h = int(parts[0]); m = int(parts[1])
+    except Exception:
+        return hhmm
+    total = h * 60 + m + int(minutes)
+    total %= (24 * 60)
+    nh = total // 60
+    nm = total % 60
+    return f"{nh:02d}:{nm:02d}"

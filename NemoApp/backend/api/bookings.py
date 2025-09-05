@@ -262,11 +262,11 @@ def list_my_bookings(current_user):
                         'id': ev_snap.id,
                         'title': ev.get('title'),
                         'date': ev.get('date'),
-                        'time': ev.get('time'),
+                        'startTime': ev.get('startTime') or ev.get('time'),
                         'location': ev.get('location'),
-                        'category': ev.get('category')
+                        'type': ev.get('type') or ev.get('category')
                     }
-                    event_dt = _combine_date_time(ev.get('date') or '', ev.get('time') or '')
+                    event_dt = _combine_date_time(ev.get('date') or '', (ev.get('startTime') or ev.get('time') or ''))
                     if event_dt:
                         is_past = event_dt < now
 
@@ -325,7 +325,7 @@ def cancel_booking(current_user, booking_id: str):
             return jsonify({'success': False, 'error': 'Event not found'}), 404
 
         event = e_snap.to_dict() or {}
-        event_dt = _combine_date_time(event.get('date') or '', event.get('time') or '')
+        event_dt = _combine_date_time(event.get('date') or '', (event.get('startTime') or event.get('time') or ''))
         if not event_dt:
             return jsonify({'success': False, 'error': 'Invalid event date/time'}), 400
 
@@ -419,7 +419,7 @@ def cancel_booking_by_event(current_user, event_id: str):
             return jsonify({'success': False, 'error': 'Event not found'}), 404
 
         event = e_snap.to_dict() or {}
-        event_dt = _combine_date_time(event.get('date') or '', event.get('time') or '')
+        event_dt = _combine_date_time(event.get('date') or '', (event.get('startTime') or event.get('time') or ''))
         if not event_dt:
             return jsonify({'success': False, 'error': 'Invalid event date/time'}), 400
         if event_dt - datetime.utcnow() < timedelta(days=1):
