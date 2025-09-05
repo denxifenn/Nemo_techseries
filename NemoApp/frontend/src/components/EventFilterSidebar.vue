@@ -258,7 +258,7 @@
         v-model.number="filters.priceRange[1]"
         type="number"
         class="price-input"
-        :min="0"
+        :min="10"
         :max="500"
       />
     </div>
@@ -285,7 +285,7 @@
           type="range"
           class="slider-thumb slider-max"
           v-model="filters.priceRange[1]"
-          :min="0"
+          :min="10"
           :max="500"
           step="10"
           @input="handleMaxChange"
@@ -752,6 +752,14 @@ export default {
   pointer-events: all;
 }
 
+.slider-min::-webkit-slider-thumb {
+  margin-left: -8px;
+}
+
+.slider-max::-webkit-slider-thumb {
+  margin-right: -16px;
+}
+
 .slider-thumb::-webkit-slider-thumb:hover {
   transform: scale(1.1);
 }
@@ -771,6 +779,14 @@ export default {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   border: none;
   transition: transform 0.2s ease;
+}
+
+.slider-min::-moz-range-thumb {
+  margin-left: -8px;
+}
+
+.slider-max::-moz-range-thumb {
+  margin-right: -16px;
 }
 
 .slider-thumb::-moz-range-thumb:hover {
@@ -815,7 +831,7 @@ export default {
 
 .price-input {
   flex: 1;
-  text-align: center;
+  text-align: left;
   padding: 8px 10px;
   border: 1px solid #e2e8f0;
   border-radius: 6px;

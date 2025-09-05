@@ -2,7 +2,7 @@
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import Card from 'primevue/card'
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed } from 'vue'
 import EventFilterSidebar from '../components/EventFilterSidebar.vue'
 
 export default {
