@@ -41,7 +41,8 @@ def login():
     return jsonify({'success': True, 'user': {
         'uid': user.get('uid') or uid,
         'phoneNumber': user.get('phoneNumber'),
-        'name': user.get('name'),
+        'fullName': user.get('fullName', user.get('name')),
+        'name': user.get('fullName', user.get('name')),  # legacy alias
         'role': user.get('role', 'user')
     }}), 200
 

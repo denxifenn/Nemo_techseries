@@ -24,7 +24,7 @@ service cloud.firestore {
       allow create: if false; // created via backend Admin SDK only
 
       allow update: if isSelf(uid)
-        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['name','profilePicture','updatedAt']);
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['name','fullName','age','nationality','languages','homeCountry','restDays','interests','skills','profilePicture','updatedAt']);
     }
 
     // events/{eventId}

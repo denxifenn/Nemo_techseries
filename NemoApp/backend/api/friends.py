@@ -203,7 +203,7 @@ def list_friends(current_user):
                 d = snap.to_dict() or {}
                 friends.append({
                     'id': fid,
-                    'name': d.get('name'),
+                    'name': d.get('fullName', d.get('name')),
                     'phoneNumber': d.get('phoneNumber'),
                     'profilePicture': d.get('profilePicture', '')
                 })

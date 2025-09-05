@@ -132,13 +132,44 @@
       <h2>Profile</h2>
       <div class="row">
         <button @click="getProfile">Get Profile</button>
+        <button @click="checkProfileStatus">Check Completion Status</button>
       </div>
       <div class="row">
-        <label>Name</label>
-        <input v-model="profile.name" placeholder="New Name" />
+        <label>Full Name</label>
+        <input v-model="profile.fullName" placeholder="Full Name" />
+        <label>Age</label>
+        <input v-model.number="profile.age" type="number" min="18" max="100" placeholder="Age (18-100)" />
+      </div>
+      <div class="row">
+        <label>Nationality</label>
+        <input v-model="profile.nationality" placeholder="e.g., Singaporean" />
+        <label>Home Country</label>
+        <input v-model="profile.homeCountry" placeholder="e.g., Singapore" />
+      </div>
+      <div class="row">
+        <label>Languages (CSV)</label>
+        <input v-model="profile.languagesCsv" placeholder="English, Mandarin" />
+        <label>Rest Days (CSV)</label>
+        <input v-model="profile.restDaysCsv" placeholder="Saturday, Sunday" />
+      </div>
+      <div class="row">
+        <label>Interests (CSV)</label>
+        <input v-model="profile.interestsCsv" placeholder="Football, Cooking" />
+        <label>Skills (CSV name:rating)</label>
+        <input v-model="profile.skillsCsv" placeholder="Cooking:Proficient, Programming:Expert" />
+      </div>
+      <div class="row">
         <label>Profile Picture URL</label>
         <input v-model="profile.profilePicture" placeholder="https://..." />
         <button @click="updateProfile">Update Profile</button>
+      </div>
+      <div class="hint">
+        Tips:
+        <ul>
+          <li>Languages and Interests: comma-separated values.</li>
+          <li>Rest Days: weekdays like Monday, Tuesday, ...</li>
+          <li>Skills: "name:rating" where rating is Basic | Proficient | Expert.</li>
+        </ul>
       </div>
     </section>
 
@@ -464,6 +495,25 @@ function parseCsv(input) {
     .filter(s => s.length > 0);
 }
 
+// Parse "Name:Rating" pairs separated by commas into [{name, rating}]
+function parseSkills(input) {
+  if (!input) return [];
+  const out = [];
+  for (const item of input.split(',')) {
+    const pair = String(item || '').trim();
+    if (!pair) continue;
+    const [nameRaw, ratingRaw] = pair.split(':').map(t => String(t || '').trim());
+    if (!nameRaw) continue;
+    const ratingLc = String(ratingRaw || 'Basic').trim().toLowerCase();
+    let rating = 'Basic';
+    if (ratingLc === 'proficient') rating = 'Proficient';
+    else if (ratingLc === 'expert') rating = 'Expert';
+    else rating = 'Basic';
+    out.push({ name: nameRaw, rating });
+  }
+  return out;
+}
+
 async function createGroupBooking() {
   lastError.value = '';
   lastResponse.value = null;
@@ -542,7 +592,14 @@ async function cancelBookingByEvent() {
 
 // Profile
 const profile = reactive({
-  name: '',
+  fullName: '',
+  age: null,
+  nationality: '',
+  languagesCsv: '',
+  homeCountry: '',
+  restDaysCsv: '',
+  interestsCsv: '',
+  skillsCsv: '',
   profilePicture: '',
 });
 
@@ -566,12 +623,28 @@ async function updateProfile() {
   lastResponse.value = null;
   try {
     const body = {};
-    if (profile.name) body.name = profile.name;
+    if (profile.fullName) body.fullName = profile.fullName;
+    if (profile.age != null && profile.age !== '') body.age = Number(profile.age);
+    if (profile.nationality) body.nationality = profile.nationality;
+    if (profile.languagesCsv) body.languages = parseCsv(profile.languagesCsv);
+    if (profile.homeCountry) body.homeCountry = profile.homeCountry;
+    if (profile.restDaysCsv) body.restDays = parseCsv(profile.restDaysCsv);
+    if (profile.interestsCsv) body.interests = parseCsv(profile.interestsCsv);
+    if (profile.skillsCsv) body.skills = parseSkills(profile.skillsCsv);
     if (profile.profilePicture) body.profilePicture = profile.profilePicture;
+
+    if (Object.keys(body).length === 0) {
+      throw new Error('No fields to update');
+    }
+
     const resp = await api.put('/api/profile', body);
     lastResponse.value = resp.data || resp;
-    const fields = Object.keys(body).join(', ') || 'no fields';
-    toast.add({ severity: 'success', summary: 'Profile updated', detail: fields, life: 3000 });
+
+    const fields = Object.keys(body).join(', ');
+    const completed = resp?.data?.profileCompleted;
+    const missing = (resp?.data?.missingFields || []).join(', ');
+    const detail = completed ? `Updated: ${fields}. Profile completed.` : `Updated: ${fields}. Missing: ${missing}`;
+    toast.add({ severity: 'success', summary: 'Profile updated', detail, life: 4000 });
   } catch (e) {
     const msg = e?.response?.data?.error || e?.message || String(e);
     lastError.value = msg;

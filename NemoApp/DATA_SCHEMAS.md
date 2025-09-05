@@ -52,42 +52,67 @@ Documents keyed by Firebase Auth UID.
  
 Required fields:
 - uid: string (Auth UID) — must equal document id
-- email: string (lowercased)
-- name: string (1..100)
+- phoneNumber: string (E.164, e.g. +6591234567)
+- fullName: string (1..100)
+- age: number (integer 18..100)
+- nationality: string (2..50)
+- languages: string[] (1..10, each 2..30 chars)
+- homeCountry: string (2..50)
+- restDays: string[] (non-empty; values in ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"])
 - role: "user" | "admin" (default "user")
 - friends: string[] of UIDs (default [])
-
+ 
 Optional fields:
+- interests: string[] (0..20, each 1..50 chars)
+- skills: { name: string(1..50), rating: "Basic"|"Proficient"|"Expert" }[] (0..20)
 - profilePicture: string (URL)
+- profileCompleted: boolean (derived; true when all required fields present/valid)
+- profileCompletedAt: timestamp (first time profileCompleted became true)
 - createdAt: timestamp
 - updatedAt: timestamp
-
+- name: string (legacy mirror of fullName for backwards compatibility)
+ 
 Example:
 ```json
 {
   "uid": "u_123",
-  "email": "john@example.com",
-  "name": "John Doe",
+  "phoneNumber": "+6591234567",
+  "fullName": "John Doe",
+  "age": 28,
+  "nationality": "Singaporean",
+  "languages": ["English", "Mandarin"],
+  "homeCountry": "Singapore",
+  "restDays": ["Saturday", "Sunday"],
+  "interests": ["Football", "Cooking"],
+  "skills": [
+    {"name": "Cooking", "rating": "Proficient"},
+    {"name": "Programming", "rating": "Expert"}
+  ],
   "role": "user",
   "profilePicture": "",
   "friends": ["u_456", "u_789"],
-  "createdAt": "2025-03-01T10:00:00Z"
+  "profileCompleted": true,
+  "profileCompletedAt": "2025-03-01T10:00:00Z",
+  "createdAt": "2025-03-01T10:00:00Z",
+  "updatedAt": "2025-03-01T11:00:00Z"
 }
 ```
-
+ 
 Invariants:
 - Document ID == uid.
 - role is one of {"user","admin"}.
 - friends array contains unique UIDs, no self-references.
-
+- skills.rating must be one of {"Basic","Proficient","Expert"}.
+- restDays values must be valid weekdays.
+ 
 Maintained by:
-- Created automatically on first backend login (auto-provision) via ensure_user_doc in [backend/services/firebase_service.py](NemoApp/backend/services/firebase_service.py) called from [python.login()](NemoApp/backend/api/auth.py:23)
-- Updated on profile changes: [python.update_profile()](NemoApp/backend/api/profile.py:29)
-- Mutated with ArrayUnion on friend accept: [python.handle_friend_request()](NemoApp/backend/api/friends.py:63)
-
+- Created automatically on first backend login (auto-provision) via ensure_user_doc in [backend/services/firebase_service.py](NemoApp/backend/services/firebase_service.py) called from [backend/api/auth.py](NemoApp/backend/api/auth.py)
+- Updated on profile changes: [backend/api/profile.py](NemoApp/backend/api/profile.py)
+- Mutated with ArrayUnion on friend accept: [backend/api/friends.py](NemoApp/backend/api/friends.py)
+ 
 Indexes:
-- Query by email exact match (friends invite): single-field index on email (Firestore auto).
-
+- Query by phoneNumber exact match (for invites or lookup): single-field index on phoneNumber (Firestore auto).
+ 
 ---
 
 ## 2) events (KAN-28)
@@ -315,7 +340,7 @@ service cloud.firestore {
 
     match /users/{uid} {
       allow read: if isSelf(uid) || isAdmin();
-      allow update: if isSelf(uid) && request.resource.data.diff(resource.data).changedKeys().hasOnly(["name","profilePicture","updatedAt"]);
+      allow update: if isSelf(uid) && request.resource.data.diff(resource.data).changedKeys().hasOnly(["name","fullName","age","nationality","languages","homeCountry","restDays","interests","skills","profilePicture","updatedAt"]);
       allow create: if false; // created via Admin SDK on backend
     }
 

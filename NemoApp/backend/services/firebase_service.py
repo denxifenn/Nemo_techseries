@@ -108,11 +108,23 @@ class FirebaseService:
                 elif email and is_phone_email(email):
                     inferred_phone = email_to_phone(email)
 
+                # Initial user profile with new schema defaults
+                full_name = (name or '').strip()
                 user_data = {
                     'uid': uid,
                     'email': email or '',
                     'phoneNumber': inferred_phone or '',
-                    'name': (name or '').strip(),
+                    # Keep legacy 'name' for backward compatibility, but use 'fullName' as canonical
+                    'fullName': full_name,
+                    'name': full_name,
+                    'age': None,
+                    'nationality': '',
+                    'languages': [],
+                    'homeCountry': '',
+                    'restDays': [],
+                    'interests': [],
+                    'skills': [],
+                    'profileCompleted': False,
                     'role': 'user',
                     'profilePicture': '',
                     'friends': [],
@@ -130,8 +142,15 @@ class FirebaseService:
                 updates['uid'] = uid
             if email and not data.get('email'):
                 updates['email'] = email
-            if name and not data.get('name'):
-                updates['name'] = (name or '').strip()
+
+            # Sync fullName/name (canonical fullName, keep legacy name mirror)
+            incoming_name = (name or '').strip() if name else None
+            if 'fullName' not in data:
+                # Prefer provided name, else existing legacy 'name', else empty
+                updates['fullName'] = incoming_name or data.get('name', '') or ''
+            if 'name' not in data and (data.get('fullName') or updates.get('fullName') is not None):
+                # Mirror to legacy field if missing
+                updates['name'] = data.get('fullName', updates.get('fullName', ''))
 
             # Phone number handling: prefer explicit phoneNumber, otherwise infer from email alias
             if phoneNumber and not data.get('phoneNumber'):
@@ -139,12 +158,31 @@ class FirebaseService:
             elif 'phoneNumber' not in data and email and is_phone_email(email):
                 updates['phoneNumber'] = email_to_phone(email)
 
+            # Core role/friends/profilePicture defaults
             if not data.get('role'):
                 updates['role'] = 'user'
             if 'friends' not in data:
                 updates['friends'] = []
             if 'profilePicture' not in data:
                 updates['profilePicture'] = ''
+
+            # New profile fields defaults
+            if 'age' not in data:
+                updates['age'] = None
+            if 'nationality' not in data:
+                updates['nationality'] = ''
+            if 'languages' not in data:
+                updates['languages'] = []
+            if 'homeCountry' not in data:
+                updates['homeCountry'] = ''
+            if 'restDays' not in data:
+                updates['restDays'] = []
+            if 'interests' not in data:
+                updates['interests'] = []
+            if 'skills' not in data:
+                updates['skills'] = []
+            if 'profileCompleted' not in data:
+                updates['profileCompleted'] = False
 
             if updates:
                 doc_ref.set(updates, merge=True)

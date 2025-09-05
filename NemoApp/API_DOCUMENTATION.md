@@ -57,6 +57,7 @@ Notes:
   "user": {
     "uid": "user_id",
     "phoneNumber": "+6591234567",
+    "fullName": "John Doe",
     "name": "John Doe",
     "role": "user"
   }
@@ -264,10 +265,24 @@ Headers: Authorization: Bearer <token>
   "profile": {
     "uid": "user_id",
     "phoneNumber": "+6591234567",
-    "name": "John Doe",
+    "fullName": "John Doe",
+    "age": 28,
+    "nationality": "Singaporean",
+    "languages": ["English", "Mandarin"],
+    "homeCountry": "Singapore",
+    "restDays": ["Saturday", "Sunday"],
+    "interests": ["Football", "Cooking"],
+    "skills": [
+      {"name": "Programming", "rating": "Expert"},
+      {"name": "Cooking", "rating": "Proficient"}
+    ],
     "role": "user",
     "profilePicture": "url_to_image",
-    "friends": ["friend_uid1", "friend_uid2"]
+    "friends": ["friend_uid1", "friend_uid2"],
+    "profileCompleted": true,
+    "profileCompletedAt": "2025-03-01T10:00:00Z",
+    "createdAt": "2025-02-28T10:00:00Z",
+    "updatedAt": "2025-03-01T10:00:00Z"
   }
 }
 ```
@@ -280,17 +295,71 @@ Headers: Authorization: Bearer <token>
 **Body:**
 ```json
 {
-  "name": "New Name",
+  "fullName": "New Name",
+  "age": 28,
+  "nationality": "Singaporean",
+  "languages": ["English", "Mandarin"],
+  "homeCountry": "Singapore",
+  "restDays": ["Saturday", "Sunday"],
+  "interests": ["Football", "Cooking"],
+  "skills": [
+    {"name": "Web Development", "rating": "Expert"},
+    {"name": "Photography", "rating": "Basic"}
+  ],
   "profilePicture": "new_image_url"
 }
 ```
+Validation:
+- fullName: 1-100 chars
+- age: integer 18-100
+- nationality: non-empty string (2-50 chars)
+- languages: array with at least 1 language (each 2-30 chars, max 10)
+- homeCountry: non-empty string (2-50 chars)
+- restDays: array of weekdays (["Monday".."Sunday"])
+- interests: array of strings (max 20, each 1-50 chars)
+- skills: array of { name: 1-50 chars, rating: "Basic" | "Proficient" | "Expert" } (max 20)
+
 **Response:**
 ```json
 {
   "success": true,
   "message": "Profile updated",
   "updated": {
-    "name": "New Name"
+    "fullName": "New Name",
+    "age": 28,
+    "nationality": "Singaporean",
+    "languages": ["English", "Mandarin"],
+    "homeCountry": "Singapore",
+    "restDays": ["Saturday", "Sunday"],
+    "interests": ["Football", "Cooking"],
+    "skills": [
+      {"name": "Web Development", "rating": "Expert"},
+      {"name": "Photography", "rating": "Basic"}
+    ],
+    "profilePicture": "new_image_url"
+  },
+  "profileCompleted": true,
+  "missingFields": []
+}
+```
+
+#### Profile Completion Status
+```
+GET /api/profile/completion-status
+Headers: Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "status": {
+    "profileCompleted": false,
+    "missingFields": ["age", "nationality", "languages"],
+    "completedFields": ["fullName", "phoneNumber", "homeCountry", "restDays"],
+    "totalRequired": 7,
+    "totalCompleted": 4,
+    "completionPercentage": 57
   }
 }
 ```

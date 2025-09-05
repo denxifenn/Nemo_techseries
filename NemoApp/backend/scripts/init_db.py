@@ -41,11 +41,28 @@ def seed_users():
             "data": {
                 "uid": "admin_test_001",
                 "email": "admin@nemoapp.local",
+                # Primary identifier in app flows remains phoneNumber
+                "phoneNumber": "+6599990001",
+                # Canonical full name (keep legacy 'name' for compatibility)
+                "fullName": "Nemo Admin",
                 "name": "Nemo Admin",
+                # New profile fields
+                "age": 30,
+                "nationality": "Singaporean",
+                "languages": ["English"],
+                "homeCountry": "Singapore",
+                "restDays": ["Saturday", "Sunday"],
+                "interests": ["Community", "Events"],
+                "skills": [{"name": "Organising", "rating": "Expert"}],
+                # Completion flags
+                "profileCompleted": True,
+                "profileCompletedAt": now,
+                # Existing fields
                 "role": "admin",
                 "profilePicture": "",
                 "friends": [],
                 "createdAt": now,
+                "updatedAt": now,
             },
         },
         {
@@ -53,11 +70,23 @@ def seed_users():
             "data": {
                 "uid": "user_test_001",
                 "email": "user@nemoapp.local",
+                "phoneNumber": "+6599990002",
+                "fullName": "Test User",
                 "name": "Test User",
+                "age": 25,
+                "nationality": "Malaysian",
+                "languages": ["English", "Malay"],
+                "homeCountry": "Malaysia",
+                "restDays": ["Sunday"],
+                "interests": ["Football", "Cooking"],
+                "skills": [{"name": "Cooking", "rating": "Proficient"}],
+                "profileCompleted": True,
+                "profileCompletedAt": now,
                 "role": "user",
                 "profilePicture": "",
                 "friends": [],
                 "createdAt": now,
+                "updatedAt": now,
             },
         },
     ]
