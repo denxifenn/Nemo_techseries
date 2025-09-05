@@ -16,6 +16,74 @@
       </span>
     </div>
 
+    <!-- Date Range Section -->
+    <div class="filter-section">
+      <h4>Date Range</h4>
+      <div class="date-range-group">
+        <div class="date-input-group">
+          <label for="startDate" class="date-label">From:</label>
+          <Calendar
+            id="startDate"
+            v-model="filters.dateRange.start"
+            placeholder="Start date"
+            :showIcon="true"
+            dateFormat="dd/mm/yy"
+            class="w-full"
+          />
+        </div>
+        <div class="date-input-group">
+          <label for="endDate" class="date-label">To:</label>
+          <Calendar
+            id="endDate"
+            v-model="filters.dateRange.end"
+            placeholder="End date"
+            :showIcon="true"
+            dateFormat="dd/mm/yy"
+            class="w-full"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- Timing Section -->
+    <div class="filter-section">
+      <h4>Timing</h4>
+      <div class="checkbox-group">
+        <div class="field-checkbox">
+          <Checkbox
+            id="morning"
+            v-model="filters.timing"
+            value="morning"
+          />
+          <label for="morning">Morning (5 AM - 12 PM)</label>
+        </div>
+        <div class="field-checkbox">
+          <Checkbox
+            id="afternoon"
+            v-model="filters.timing"
+            value="afternoon"
+          />
+          <label for="afternoon">Afternoon (12 PM - 4 PM)</label>
+        </div>
+        <div class="field-checkbox">
+          <Checkbox
+            id="evening"
+            v-model="filters.timing"
+            value="evening"
+          />
+          <label for="evening">Evening (4 PM - 7 PM)</label>
+        </div>
+        <div class="field-checkbox">
+          <Checkbox
+            id="night"
+            v-model="filters.timing"
+            value="night"
+          />
+          <label for="night">Night (7 PM - 5 AM)</label>
+        </div>
+      </div>
+    </div>
+
     <!-- Format Section -->
     <div class="filter-section">
       <h4>Format</h4>
@@ -135,11 +203,6 @@
 
     <!-- Action Buttons -->
     <div class="filter-actions">
-      <!-- <Button
-        label="Apply"
-        class="p-button-success apply-btn"
-        @click="applyFilters"
-      /> -->
       <Button
         label="Reset"
         class="p-button-text reset-btn"
@@ -154,22 +217,29 @@ import { ref, watch } from 'vue'
 import InputText from 'primevue/inputtext'
 import Checkbox from 'primevue/checkbox'
 import Button from 'primevue/button'
+import Calendar from 'primevue/calendar'
 
 export default {
   name: 'EventFilterSidebar',
   components: {
     InputText,
     Checkbox,
-    Button
+    Button,
+    Calendar
   },
   emits: ['filtersChanged'],
   setup(props, { emit }) {
     const sidebarRef = ref(null)
     const filters = ref({
       search: '',
+      dateRange: {
+        start: null,
+        end: null
+      },
+      timing: [],
       format: [],
       type: [],
-      region:[]
+      region: []
     })
 
     // Watch for changes and emit to parent
@@ -189,9 +259,14 @@ export default {
     const resetFilters = () => {
       filters.value = {
         search: '',
+        dateRange: {
+          start: null,
+          end: null
+        },
+        timing: [],
         format: [],
         type: [],
-        region:[]
+        region: []
       }
     }
 
@@ -261,6 +336,25 @@ export default {
   cursor: pointer;
 }
 
+/* Date Range Styles */
+.date-range-group {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.date-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.date-label {
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
 .filter-actions {
   display: flex;
   gap: 10px;
@@ -288,6 +382,10 @@ export default {
     position: relative;
     border-right: none;
     border-bottom: 1px solid #e5e7eb;
+  }
+  
+  .date-range-group {
+    gap: 12px;
   }
 }
 </style>
