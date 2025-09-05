@@ -7,7 +7,7 @@ import EventCreation from '../views/EventCreation.vue'
 import EventSuggestion from '../views/EventSuggestion.vue'
 import Profile from '../views/Profile.vue'
 import Friends from '../views/Friends.vue'
-import FriendInfo from '../views/FriendInfo.vue'
+import MyBookings from '../views/MyBookings.vue'
 
 const routes = [
   {
@@ -55,10 +55,10 @@ const routes = [
     component: Friends
   },
   {
-    path: '/friend-info',
-    name: 'FriendInfo',
-    component: FriendInfo
-  }
+    path: '/my-bookings',
+    name: 'MyBookings',
+    component: MyBookings
+  },
 ]
 
 const router = createRouter({
