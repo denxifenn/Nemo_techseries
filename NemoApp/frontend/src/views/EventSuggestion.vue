@@ -96,7 +96,7 @@ const clearSuggestion = () => {
 }
 
 .suggestion-form-box {
-  background: #ffeedd;
+  background: #EC7600;
   padding: 3rem;
   border-radius: 16px;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
@@ -127,7 +127,7 @@ const clearSuggestion = () => {
 .suggestion-textarea {
   width: 100%;
   padding: 1rem;
-  border: 2px solid #ffcc99;
+  border: 2px solid #EC7600;
   border-radius: 12px;
   font-size: 1rem;
   font-family: 'Arial', sans-serif;
@@ -182,7 +182,7 @@ const clearSuggestion = () => {
 }
 
 .submit-btn:disabled {
-  background: #ccc;
+  background: orange;
   cursor: not-allowed;
   opacity: 0.6;
   transform: none;
