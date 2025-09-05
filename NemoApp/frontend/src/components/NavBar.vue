@@ -79,12 +79,26 @@ h4{
   border-radius: 50%;
   cursor: pointer;
 }
-.navbar-container {
+/* .navbar-container {
     display: flex;
     align-items: center;
     justify-content: space-between;
     width: 100%;
     padding: 0.5rem 1rem;
+} */
+.navbar-container {
+    position: fixed;     /* Freeze it in place */
+    top: 0;              /* Stick to top */
+    left: 0;
+    right: 0;
+    z-index: 1000;       /* Stay above other elements */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0.5rem 1rem;
+    background-color: white; /* Add a background so it doesn't overlap text */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* optional subtle shadow */
 }
 
 .logo-section {

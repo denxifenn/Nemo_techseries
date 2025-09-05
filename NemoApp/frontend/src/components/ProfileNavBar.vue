@@ -15,7 +15,7 @@
           <span>My Bookings</span>
         </router-link>
       </div>
-      
+
       <div class="nav-bottom">
         <router-link to="/logout" class="nav-link logout-link">
           <i class="pi pi-sign-out"></i>
@@ -37,12 +37,12 @@
 <style scoped>
 .sidebar {
   width: 250px;
-  min-height: 100vh;
+  height: calc(100vh - 80px);
   background: #ec6212;
   display: flex;
   flex-direction: column;
   position: fixed;
-  top: 0;
+  top: 116px;
   left: 0;
   z-index: 1000;
   padding: 1rem 0;
@@ -59,28 +59,31 @@
 .nav-top {
   display: flex;
   flex-direction: column;
-  gap: 6rem;
-  margin-top: 9rem;
+  gap: 3rem;
+  margin-top: 6rem;
 }
 
 .nav-bottom {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  margin-top: auto;
+  margin-bottom: 60;
 }
 
 .nav-link {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
+  justify-content: center;
+  flex-direction: column; /* stack icon above text */
+  gap: 0.4rem;
+  padding: 0.9rem 1rem;
   color: white;
   text-decoration: none;
   border-radius: 8px;
   transition: background-color 0.2s ease;
   font-size: 0.9rem;
   font-weight: 500;
+  text-align: center;
 }
 
 .nav-link:hover {
@@ -92,9 +95,15 @@
 }
 
 .nav-link i {
-  font-size: 1.1rem;
-  width: 20px;
+  font-size: 1.6rem; /* bigger icons */
+  width: auto;
+  line-height: 1;
   text-align: center;
+}
+
+.nav-link span {
+  display: block;
+  font-size: 0.9rem;
 }
 
 .logout-link:hover {
@@ -113,10 +122,12 @@
 /* Responsive design */
 @media (max-width: 768px) {
   .sidebar {
-    width: 100%;
-    min-height: auto;
-    position: relative;
+    width: 70%;
+    min-height: 70%;
+    position: sticky;
     padding: 1rem;
+    top: 0;
+    height: auto;
   }
 
   .nav-container {
@@ -124,19 +135,20 @@
     justify-content: space-between;
     align-items: center;
     padding: 0.5rem;
-    height: auto;
+    height: 80px;
   }
 
   .nav-top {
     flex-direction: row;
-    gap: 0.25rem;
+    gap: 2rem;
     flex: 1;
+    margin-top: 0;
   }
 
   .nav-bottom {
     flex-direction: row;
-    gap: 0.25rem;
     margin-top: 0;
+    margin-bottom: 50rem;
   }
 
   .nav-link {
@@ -158,7 +170,7 @@
     padding: 0.5rem 0.3rem;
     font-size: 0.8rem;
   }
-  
+
   .nav-link span {
     font-size: 0.7rem;
   }
