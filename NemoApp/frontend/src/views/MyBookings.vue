@@ -1,7 +1,7 @@
 <template>
   <ProfileNavBar />
 
-  <div class="friends-page">
+  <div class="bookings-page">
     <!-- Page Header -->
     <div class="page-header">
       <h1 class="page-title">MY BOOKINGS</h1>
@@ -11,7 +11,7 @@
     <div class="bookings-grid">
       <Card 
         v-for="booking in bookings" 
-        :key="bookings.id"
+        :key="booking.id"
         class="booking-card"
       >
         <template #content>
@@ -25,20 +25,18 @@
                 shape="circle"
                 class="avatar"
               />
-              
             </div>
 
-            <!-- Friend Info -->
+            <!-- Booking Info -->
             <div class="booking-info">
               <h3 class="booking-name">{{ booking.name }}</h3>
-              <p class="booking-role">{{ friend.role }}</p>
+              <p class="booking-role">{{ booking.role }}</p>
               <p class="booking-company">{{ booking.company }}</p>
               <div class="booking-stats">
                 <span class="stat">
                   <i class="pi pi-users"></i>
-                  {{ booking.mutualbookings }} mutual
+                  {{ booking.mutualFriends }} mutual
                 </span>
-               
               </div>
             </div>
 
@@ -48,7 +46,7 @@
                 label="More Info"
                 icon="pi pi-info-circle"
                 size="small"
-                @click="viewProfile(booking))"
+                @click="viewProfile(booking)"
                 class="action-btn"
               />
             </div>
@@ -77,23 +75,22 @@
             <h2>{{ selectedBooking.name }}</h2>
             <p class="role">{{ selectedBooking.role }}</p>
             <p class="company">{{ selectedBooking.company }}</p>
-          
           </div>
         </div>
 
         <Divider />
 
-        <!-- <div class="profile-sections">
+        <div class="profile-sections">
           <div class="section">
             <h4><i class="pi pi-user"></i> About</h4>
             <p>{{ selectedBooking.bio }}</p>
           </div>
 
-        <div class="section">
+          <div class="section">
             <h4><i class="pi pi-heart"></i> Interests</h4>
             <div class="interests">
               <Tag 
-                v-for="interest in selectedFriends.interests"
+                v-for="interest in selectedBooking.interests"
                 :key="interest"
                 :value="interest"
                 severity="info"
@@ -104,19 +101,18 @@
 
           <div class="section">
             <h4><i class="pi pi-users"></i> Network</h4>
-            <p>{{ selectedFriend.mutualFriends }} mutual friends</p>
-            <p>{{ selectedFriend.totalConnections }} total connections</p>
-          </div> -->
-        <!-- </div> -->
+            <p>{{ selectedBooking.mutualFriends }} mutual friends</p>
+            <p>{{ selectedBooking.totalConnections }} total connections</p>
+          </div>
+        </div>
       </div>
 
       <template #footer>
         <div class="dialog-actions">
-          
           <Button
             label="Close"
             severity="secondary"
-            @click="closeBooking"
+            @click="closeProfile"
             class="close-btn"
           />
         </div>
@@ -157,8 +153,8 @@ export default {
     const showProfileDialog = ref(false)
     const selectedBooking = ref(null)
 
-    // Sample friends data - Migrant workers in Singapore
-    const friends = ref([
+    // Sample bookings data - Fixed the variable name and structure
+    const bookings = ref([
       {
         id: 1,
         name: 'Maria Santos',
@@ -182,7 +178,7 @@ export default {
         mutualFriends: 8,
         friendsSince: '2020',
         bio: 'Experienced construction worker from India. Specialized in building infrastructure and helping Singapore grow.',
-        Interests: ['Cricket', 'Tamil Movies', 'Cooking'],
+        interests: ['Cricket', 'Tamil Movies', 'Cooking'],
         totalConnections: 62
       },
       {
@@ -195,7 +191,6 @@ export default {
         mutualFriends: 15,
         friendsSince: '2022',
         bio: 'Dedicated factory worker from Indonesia. Working hard to support family back home while learning new skills.',
-        experience: 4,
         interests: ['Badminton', 'Indonesian Food', 'Learning English'],
         totalConnections: 38
       },
@@ -209,7 +204,6 @@ export default {
         mutualFriends: 6,
         friendsSince: '2023',
         bio: 'Hardworking kitchen helper from China. Learning Singaporean cuisine and saving money for family.',
-        experience: 2,
         interests: ['Cooking', 'Table Tennis', 'Chinese Opera'],
         totalConnections: 28
       },
@@ -223,7 +217,6 @@ export default {
         mutualFriends: 20,
         friendsSince: '2019',
         bio: 'Experienced cleaner from Bangladesh. Takes pride in keeping Singapore clean and beautiful.',
-        experience: 12,
         interests: ['Bengali Music', 'Gardening', 'Community Service'],
         totalConnections: 54
       },
@@ -235,6 +228,7 @@ export default {
         avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face',
         initials: 'JR',
         mutualFriends: 9,
+        friendsSince: '2023',
         bio: 'Reliable security guard from Philippines. Ensuring safety and security for Singaporean communities.',
         interests: ['Basketball', 'Filipino Movies', 'Reading'],
         totalConnections: 41
@@ -250,7 +244,6 @@ export default {
       showProfileDialog.value = false
       selectedBooking.value = null
     }
-
 
     return {
       bookings,
@@ -269,7 +262,7 @@ export default {
   padding: 2rem;
   max-width: 1200px;
   margin: 0 auto;
-  margin-bottom:9000px;
+  margin-bottom: 100px;
 }
 
 .page-header {
@@ -277,32 +270,32 @@ export default {
   margin-bottom: 3rem;
 }
 
-.page-title {
+/* .page-title {
   font-size: 2.5rem;
-  color: var(--primary-color);
+  color: #ff7733;
   margin-bottom: 0.5rem;
-}
+} */
 
 .page-subtitle {
-  color: var(--text-color-secondary);
+  color: #666;
   font-size: 1.1rem;
 }
 
 .bookings-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 5rem;
+  gap: 2rem;
 }
 
 .booking-card {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-  background-color:  #FFC67B;
+  background-color: #FFC67B;
   border-radius: 20px;
 }
 
 .booking-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 20px rgba(230, 93, 2, 0.973);
+  box-shadow: 0 4px 20px rgba(230, 93, 2, 0.3);
 }
 
 .booking-content {
@@ -310,46 +303,34 @@ export default {
 }
 
 .booking-avatar {
-  position: sticky;
   text-align: center;
+  margin-bottom: 1rem;
 }
 
 .avatar {
-  border: 3px solid var(--surface-border);
+  border: 3px solid #fff;
 }
-
-.status-indicator {
-  position: absolute;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: 2px solid white;
-  bottom: 0;
-  right: calc(50% - 35px);
-}
-
 
 .booking-info {
   text-align: center;
   margin-bottom: 1.5rem;
-  
 }
 
 .booking-name {
   font-size: 1.25rem;
   font-weight: 600;
   margin-bottom: 0.25rem;
-  color: var(--text-color);
+  color: #333;
 }
 
 .booking-role {
-  color: var(--primary-color);
+  color: #ff7733;
   font-weight: 500;
   margin-bottom: 0.25rem;
 }
 
 .booking-company {
-  color: var(--text-color-secondary);
+  color: #666;
   margin-bottom: 1rem;
 }
 
@@ -358,7 +339,7 @@ export default {
   justify-content: center;
   gap: 1rem;
   font-size: 0.875rem;
-  color: var(--text-color-secondary);
+  color: #666;
 }
 
 .stat {
@@ -382,9 +363,8 @@ export default {
 }
 
 .profile-details {
-  width: 600px;
   padding: 1rem 0;
-  background-color: rgb(255, 146, 78);
+  background-color: #fff;
   border-radius: 8px;
 }
 
@@ -397,17 +377,17 @@ export default {
 
 .profile-basic-info h2 {
   margin-bottom: 0.5rem;
-  color: var(--text-color);
+  color: #333;
 }
 
 .profile-basic-info .role {
-  color: var(--primary-color);
+  color: #ff7733;
   font-weight: 500;
   margin-bottom: 0.25rem;
 }
 
 .profile-basic-info .company {
-  color: var(--text-color-secondary);
+  color: #666;
   margin-bottom: 0.75rem;
 }
 
@@ -420,13 +400,13 @@ export default {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: var(--text-color);
+  color: #333;
   margin-bottom: 0.75rem;
   font-weight: 600;
 }
 
 .section p {
-  color: var(--text-color-secondary);
+  color: #666;
   line-height: 1.6;
 }
 
@@ -446,12 +426,13 @@ export default {
   justify-content: flex-end;
 }
 
-.close-btn{
-  background-color: #ec6212; 
-  color: rgb(0, 0, 0);
+.close-btn {
+  background-color: #ec6212;
+  color: white;
 }
+
 .close-btn:hover {
-  background-color: #c4808c; 
+  background-color: #c4511d;
 }
 
 @media (max-width: 768px) {

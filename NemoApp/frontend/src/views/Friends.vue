@@ -1,144 +1,131 @@
 <template>
-  <ProfileNavBar />
+  <div class="page-layout">
+    <ProfileNavBar />
+    
+    <div class="main-content">
+      <div class="friends-page">
+        <!-- Page Header -->
+        <div class="page-header">
+          <h1 class="page-title">MY FRIENDS</h1>
+          <p class="page-subtitle">Stay connected with your network</p>
+        </div>
 
-  <div class="friends-page">
-    <!-- Page Header -->
-    <div class="page-header">
-      <h1 class="page-title">MY FRIENDS</h1>
-      <p class="page-subtitle">Stay connected with your network</p>
-    </div>
+        <!-- Friends Grid -->
+        <div class="friends-grid">
+          <Card 
+            v-for="friend in friends" 
+            :key="friend.id"
+            class="friend-card"
+          >
+            <template #content>
+              <div class="friend-content">
+                <!-- Profile Image -->
+                <div class="friend-avatar">
+                  <Avatar 
+                    :image="friend.avatar" 
+                    :label="friend.initials"
+                    size="large"
+                    shape="circle"
+                    class="avatar"
+                  />
+                </div>
 
-    <!-- Friends Grid -->
-    <div class="friends-grid">
-      <Card 
-        v-for="friend in friends" 
-        :key="friend.id"
-        class="friend-card"
-      >
-        <template #content>
-          <div class="friend-content">
-            <!-- Profile Image -->
-            <div class="friend-avatar">
+                <!-- Friend Info -->
+                <div class="friend-info">
+                  <h3 class="friend-name">{{ friend.name }}</h3>
+                  <p class="friend-role">{{ friend.role }}</p>
+                  <p class="friend-company">{{ friend.company }}</p>
+                  <div class="friend-stats">
+                    <span class="stat">
+                      <i class="pi pi-users"></i>
+                      {{ friend.mutualFriends }} mutual
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="friend-actions">
+                  <Button
+                    label="More Info"
+                    icon="pi pi-info-circle"
+                    size="small"
+                    @click="viewProfile(friend)"
+                    class="action-btn"
+                  />
+                </div>
+              </div>
+            </template>
+          </Card>
+        </div>
+
+        <!-- Profile Dialog -->
+        <Dialog 
+          v-model:visible="showProfileDialog"
+          :header="selectedFriend?.name"
+          modal
+          class="profile-dialog"
+          :style="{ width: '600px' }"
+        >
+          <div v-if="selectedFriend" class="profile-details">
+            <div class="profile-header">
               <Avatar 
-                :image="friend.avatar" 
-                :label="friend.initials"
-                size="large"
+                :image="selectedFriend.avatar" 
+                :label="selectedFriend.initials"
+                size="xlarge"
                 shape="circle"
-                class="avatar"
               />
-              
-            </div>
-
-            <!-- Friend Info -->
-            <div class="friend-info">
-              <h3 class="friend-name">{{ friend.name }}</h3>
-              <p class="friend-role">{{ friend.role }}</p>
-              <p class="friend-company">{{ friend.company }}</p>
-              <div class="friend-stats">
-                <span class="stat">
-                  <i class="pi pi-users"></i>
-                  {{ friend.mutualFriends }} mutual
-                </span>
-               
+              <div class="profile-basic-info">
+                <h2>{{ selectedFriend.name }}</h2>
+                <p class="role">{{ selectedFriend.role }}</p>
+                <p class="company">{{ selectedFriend.company }}</p>
               </div>
             </div>
 
-            <!-- Action Buttons -->
-            <div class="friend-actions">
+            <Divider />
+
+            <div class="profile-sections">
+              <div class="section">
+                <h4><i class="pi pi-user"></i> About</h4>
+                <p>{{ selectedFriend.bio }}</p>
+              </div>
+
+              <div class="section">
+                <h4><i class="pi pi-heart"></i> Interests</h4>
+                <div class="interests">
+                  <Tag 
+                    v-for="interest in selectedFriend.interests"
+                    :key="interest"
+                    :value="interest"
+                    severity="info"
+                    class="interest-tag"
+                  />
+                </div>
+              </div>
+
+              <div class="section">
+                <h4><i class="pi pi-users"></i> Network</h4>
+                <p>{{ selectedFriend.mutualFriends }} mutual friends</p>
+                <p>{{ selectedFriend.totalConnections }} total connections</p>
+              </div>
+            </div>
+          </div>
+
+          <template #footer>
+            <div class="dialog-actions">
               <Button
-                label="Message"
-                icon="pi pi-comments"
+                label="Close"
                 severity="secondary"
-                size="small"
-                @click="sendMessage(friend)"
-                class="action-btn"
-              />
-              <Button
-                label="More Info"
-                icon="pi pi-info-circle"
-                size="small"
-                @click="viewProfile(friend)"
-                class="action-btn"
+                @click="closeProfile"
+                class="close-btn"
               />
             </div>
-          </div>
-        </template>
-      </Card>
-    </div>
+          </template>
+        </Dialog>
 
-    <!-- Profile Dialog -->
-    <Dialog 
-      v-model:visible="showProfileDialog"
-      :header="selectedFriend?.name"
-      modal
-      class="profile-dialog"
-      :style="{ width: '600px' }"
-    >
-      <div v-if="selectedFriend" class="profile-details">
-        <div class="profile-header">
-          <Avatar 
-            :image="selectedFriend.avatar" 
-            :label="selectedFriend.initials"
-            size="xlarge"
-            shape="circle"
-          />
-          <div class="profile-basic-info">
-            <h2>{{ selectedFriend.name }}</h2>
-            <p class="role">{{ selectedFriend.role }}</p>
-            <p class="company">{{ selectedFriend.company }}</p>
-          
-          </div>
-        </div>
-
-        <Divider />
-
-        <div class="profile-sections">
-          <div class="section">
-            <h4><i class="pi pi-user"></i> About</h4>
-            <p>{{ selectedFriend.bio }}</p>
-          </div>
-
-        <div class="section">
-            <h4><i class="pi pi-heart"></i> Interests</h4>
-            <div class="interests">
-              <Tag 
-                v-for="interest in selectedFriend.interests"
-                :key="interest"
-                :value="interest"
-                severity="info"
-                class="interest-tag"
-              />
-            </div>
-          </div>
-
-          <div class="section">
-            <h4><i class="pi pi-users"></i> Network</h4>
-            <p>{{ selectedFriend.mutualFriends }} mutual friends</p>
-            <p>{{ selectedFriend.totalConnections }} total connections</p>
-          </div>
-        </div>
+        <!-- Toast for notifications -->
+        <Toast ref="toast" />
       </div>
-
-      <template #footer>
-        <div class="dialog-actions">
-          <Button
-            label="Send Message"
-            icon="pi pi-comments"
-            @click="sendMessage(selectedFriend)"
-            class="close-btn"
-          />
-          <Button
-            label="Close"
-            severity="secondary"
-            @click="closeProfile"
-            class="close-btn"
-          />
-        </div>
-      </template>
-    </Dialog>
-
-    <!-- Toast for notifications -->
-    <Toast ref="toast" />
+    </div>
   </div>
 </template>
 
@@ -196,7 +183,7 @@ export default {
         mutualFriends: 8,
         friendsSince: '2020',
         bio: 'Experienced construction worker from India. Specialized in building infrastructure and helping Singapore grow.',
-        Interests: ['Cricket', 'Tamil Movies', 'Cooking'],
+        interests: ['Cricket', 'Tamil Movies', 'Cooking'],
         totalConnections: 62
       },
       {
@@ -209,7 +196,6 @@ export default {
         mutualFriends: 15,
         friendsSince: '2022',
         bio: 'Dedicated factory worker from Indonesia. Working hard to support family back home while learning new skills.',
-        experience: 4,
         interests: ['Badminton', 'Indonesian Food', 'Learning English'],
         totalConnections: 38
       },
@@ -223,7 +209,6 @@ export default {
         mutualFriends: 6,
         friendsSince: '2023',
         bio: 'Hardworking kitchen helper from China. Learning Singaporean cuisine and saving money for family.',
-        experience: 2,
         interests: ['Cooking', 'Table Tennis', 'Chinese Opera'],
         totalConnections: 28
       },
@@ -237,7 +222,6 @@ export default {
         mutualFriends: 20,
         friendsSince: '2019',
         bio: 'Experienced cleaner from Bangladesh. Takes pride in keeping Singapore clean and beautiful.',
-        experience: 12,
         interests: ['Bengali Music', 'Gardening', 'Community Service'],
         totalConnections: 54
       },
@@ -249,6 +233,7 @@ export default {
         avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face',
         initials: 'JR',
         mutualFriends: 9,
+        friendsSince: '2023',
         bio: 'Reliable security guard from Philippines. Ensuring safety and security for Singaporean communities.',
         interests: ['Basketball', 'Filipino Movies', 'Reading'],
         totalConnections: 41
@@ -265,24 +250,12 @@ export default {
       selectedFriend.value = null
     }
 
-    const sendMessage = (friend) => {
-      toast.add({
-        severity: 'info',
-        summary: 'Message',
-        detail: `Opening chat with ${friend.name}`,
-        life: 3000
-      })
-      // Here you would typically navigate to a messaging interface
-      // or open a chat component
-    }
-
     return {
       friends,
       showProfileDialog,
       selectedFriend,
       viewProfile,
       closeProfile,
-      sendMessage,
       toast
     }
   }
@@ -290,6 +263,17 @@ export default {
 </script>
 
 <style scoped>
+.page-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.main-content {
+  flex: 1;
+  margin-left: 250px; /* Account for fixed sidebar width */
+  min-height: 100vh;
+}
+
 .friends-page {
   padding: 2rem;
   max-width: 1200px;
@@ -303,30 +287,30 @@ export default {
 
 .page-title {
   font-size: 2.5rem;
-  color: var(--primary-color);
+  color: #ff7733;
   margin-bottom: 0.5rem;
 }
 
 .page-subtitle {
-  color: var(--text-color-secondary);
+  color: #666;
   font-size: 1.1rem;
 }
 
 .friends-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 5rem;
+  gap: 2rem;
 }
 
 .friend-card {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-  background-color:  #FFC67B;
-  border-radius: 12px;
+  background-color: #FFC67B;
+  border-radius: 20px;
 }
 
 .friend-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 20px rgba(230, 93, 2, 0.973);
+  box-shadow: 0 4px 20px rgba(230, 93, 2, 0.3);
 }
 
 .friend-content {
@@ -334,47 +318,34 @@ export default {
 }
 
 .friend-avatar {
-  position: relative;
   text-align: center;
   margin-bottom: 1rem;
 }
 
 .avatar {
-  border: 3px solid var(--surface-border);
+  border: 3px solid #fff;
 }
-
-.status-indicator {
-  position: absolute;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: 2px solid white;
-  bottom: 0;
-  right: calc(50% - 35px);
-}
-
 
 .friend-info {
   text-align: center;
   margin-bottom: 1.5rem;
-  
 }
 
 .friend-name {
   font-size: 1.25rem;
   font-weight: 600;
   margin-bottom: 0.25rem;
-  color: var(--text-color);
+  color: #333;
 }
 
 .friend-role {
-  color: var(--primary-color);
+  color: #ff7733;
   font-weight: 500;
   margin-bottom: 0.25rem;
 }
 
 .friend-company {
-  color: var(--text-color-secondary);
+  color: #666;
   margin-bottom: 1rem;
 }
 
@@ -383,7 +354,7 @@ export default {
   justify-content: center;
   gap: 1rem;
   font-size: 0.875rem;
-  color: var(--text-color-secondary);
+  color: #666;
 }
 
 .stat {
@@ -407,9 +378,8 @@ export default {
 }
 
 .profile-details {
-  width: 600px;
   padding: 1rem 0;
-  background-color: rgb(255, 146, 78);
+  background-color: #fff;
   border-radius: 8px;
 }
 
@@ -422,17 +392,17 @@ export default {
 
 .profile-basic-info h2 {
   margin-bottom: 0.5rem;
-  color: var(--text-color);
+  color: #333;
 }
 
 .profile-basic-info .role {
-  color: var(--primary-color);
+  color: #ff7733;
   font-weight: 500;
   margin-bottom: 0.25rem;
 }
 
 .profile-basic-info .company {
-  color: var(--text-color-secondary);
+  color: #666;
   margin-bottom: 0.75rem;
 }
 
@@ -445,13 +415,13 @@ export default {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: var(--text-color);
+  color: #333;
   margin-bottom: 0.75rem;
   font-weight: 600;
 }
 
 .section p {
-  color: var(--text-color-secondary);
+  color: #666;
   line-height: 1.6;
 }
 
@@ -471,15 +441,21 @@ export default {
   justify-content: flex-end;
 }
 
-.close-btn{
-  background-color: #ec6212; 
-  color: rgb(0, 0, 0);
-}
-.close-btn:hover {
-  background-color: #c4808c; 
+.close-btn {
+  background-color: #ec6212;
+  color: white;
 }
 
+.close-btn:hover {
+  background-color: #c4511d;
+}
+
+/* Responsive design */
 @media (max-width: 768px) {
+  .main-content {
+    margin-left: 0; /* No sidebar margin on mobile */
+  }
+  
   .friends-page {
     padding: 1rem;
   }
@@ -495,6 +471,16 @@ export default {
   
   .dialog-actions {
     flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-title {
+    font-size: 2rem;
+  }
+  
+  .friends-page {
+    padding: 0.5rem;
   }
 }
 </style>
