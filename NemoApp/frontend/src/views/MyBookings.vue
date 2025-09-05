@@ -5,58 +5,77 @@
     <!-- Page Header -->
     <div class="page-header">
       <h1 class="page-title">MY BOOKINGS</h1>
+      <p>Events you've signed up for!</p>
     </div>
 
     <!-- Bookings Grid -->
     <div class="bookings-grid">
-      <Card 
-        v-for="booking in bookings" 
-        :key="booking.id"
-        class="booking-card"
-      >
-        <template #content>
-          <div class="booking-content">
-            <!-- Profile Image -->
-            <div class="booking-avatar">
-              <Avatar 
-                :image="booking.avatar" 
-                :label="booking.initials"
-                size="large"
-                shape="circle"
-                class="avatar"
+      <div v-for="event in bookings" :key="event.id" class="event-card">
+        <Card>
+          <template #header>
+            <div class="event-image">
+              <img :src="event.image" :alt="event.title" />
+            </div>
+          </template>
+          <template #title>{{ event.title }}</template>
+          <template #subtitle>
+            <div class="event-meta">
+              <span class="event-date"
+                >{{ event.date }} at {{ event.startTime }} -
+                {{ event.endTime }}</span
+              >
+              <span class="event-location">📍 {{ event.location }}</span>
+              <span class="event-organiser">👤 {{ event.organiser }}</span>
+              <span class="event-slots">🎫 {{ event.bookingSlots }} slots</span>
+              <span class="event-price">{{
+                event.price === 0 ? "🆓 Free" : `💰 $${event.price}`
+              }}</span>
+            </div>
+          </template>
+          <template #content>
+            <p class="event-description">{{ event.description }}</p>
+            <div class="event-tags">
+              <Tag
+                :value="event.format"
+                severity="secondary"
+                class="format-tag"
+              />
+              <Tag
+                :value="event.type"
+                severity="secondary"
+                class="format-tag"
+              />
+              <Tag
+                :value="event.region"
+                severity="secondary"
+                class="format-tag"
               />
             </div>
-
-            <!-- Booking Info -->
-            <div class="booking-info">
-              <h3 class="booking-name">{{ booking.name }}</h3>
-              <p class="booking-role">{{ booking.role }}</p>
-              <p class="booking-company">{{ booking.company }}</p>
-              <div class="booking-stats">
-                <span class="stat">
-                  <i class="pi pi-users"></i>
-                  {{ booking.mutualFriends }} mutual
-                </span>
-              </div>
-            </div>
-
+          </template>
+          <template #footer>
             <!-- Action Buttons -->
             <div class="booking-actions">
+              <Button
+                label="Cancel Booking"
+                size="small"
+                @click="cancelBooking(event.id)"
+                class="cancel-booking-btn"
+              />
               <Button
                 label="More Info"
                 icon="pi pi-info-circle"
                 size="small"
-                @click="viewProfile(booking)"
+                @click="router.push({ name: 'Event' })"
                 class="action-btn"
               />
             </div>
-          </div>
-        </template>
-      </Card>
+          </template>
+        </Card>
+      </div>
     </div>
 
     <!-- Profile Dialog -->
-    <Dialog 
+    <Dialog
       v-model:visible="showProfileDialog"
       :header="selectedBooking?.name"
       modal
@@ -65,8 +84,8 @@
     >
       <div v-if="selectedBooking" class="profile-details">
         <div class="profile-header">
-          <Avatar 
-            :image="selectedBooking.avatar" 
+          <Avatar
+            :image="selectedBooking.avatar"
             :label="selectedBooking.initials"
             size="xlarge"
             shape="circle"
@@ -89,7 +108,7 @@
           <div class="section">
             <h4><i class="pi pi-heart"></i> Interests</h4>
             <div class="interests">
-              <Tag 
+              <Tag
                 v-for="interest in selectedBooking.interests"
                 :key="interest"
                 :value="interest"
@@ -126,18 +145,19 @@
 
 <script>
 import ProfileNavBar from "@/components/ProfileNavBar.vue";
-import { ref } from 'vue'
-import Card from 'primevue/card'
-import Avatar from 'primevue/avatar'
-import Button from 'primevue/button'
-import Dialog from 'primevue/dialog'
-import Divider from 'primevue/divider'
-import Tag from 'primevue/tag'
-import Toast from 'primevue/toast'
-import { useToast } from 'primevue/usetoast'
+import { ref } from "vue";
+import Card from "primevue/card";
+import Avatar from "primevue/avatar";
+import Button from "primevue/button";
+import Dialog from "primevue/dialog";
+import Divider from "primevue/divider";
+import Tag from "primevue/tag";
+import Toast from "primevue/toast";
+import { useToast } from "primevue/usetoast";
+import { useRouter } from "vue-router";
 
 export default {
-  name: 'MyBookingsPage',
+  name: "MyBookingsPage",
   components: {
     ProfileNavBar,
     Card,
@@ -146,115 +166,93 @@ export default {
     Dialog,
     Divider,
     Tag,
-    Toast
+    Toast,
   },
   setup() {
-    const toast = useToast()
-    const showProfileDialog = ref(false)
-    const selectedBooking = ref(null)
+    const toast = useToast();
+    const router = useRouter();
+    const showProfileDialog = ref(false);
+    const selectedBooking = ref(null);
 
+    const closeProfile = () => {
+      showProfileDialog.value = false;
+    };
+
+    const cancelBooking = (bookingId) => {
+      bookings.value = bookings.value.filter((b) => b.id !== bookingId);
+      toast.add({
+        severity: "warn",
+        summary: "Booking Cancelled",
+        detail: "Your booking has been cancelled!",
+        life: 3000,
+      });
+    };
     // Sample bookings data - Fixed the variable name and structure
     const bookings = ref([
       {
         id: 1,
-        name: 'Maria Santos',
-        role: 'Domestic Helper',
-        company: 'Private Household',
-        avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b602?w=150&h=150&fit=crop&crop=face',
-        initials: 'MS',
-        mutualFriends: 12,
-        friendsSince: '2021',
-        bio: 'Caring domestic helper from Philippines. Love taking care of families and helping with household needs.',
-        interests: ['Cooking', 'Childcare', 'Filipino Culture'],
-        totalConnections: 45
+        title: "Basketball Tournament",
+        date: "Oct 15, 2024",
+        startTime: "2:00 PM",
+        endTime: "6:00 PM",
+        location: "Sports Center",
+        organiser: "Sports Club",
+        status: "active",
+        bookingSlots: 50,
+        description: "Annual basketball tournament for all skill levels.",
+        format: "indoor",
+        type: "sports",
+        region: "North",
+        price: 35,
+        image: "https://via.placeholder.com/300x200",
       },
       {
         id: 2,
-        name: 'Ravi Kumar',
-        role: 'Construction Worker',
-        company: 'Build-Tech Construction Pte Ltd',
-        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
-        initials: 'RK',
-        mutualFriends: 8,
-        friendsSince: '2020',
-        bio: 'Experienced construction worker from India. Specialized in building infrastructure and helping Singapore grow.',
-        interests: ['Cricket', 'Tamil Movies', 'Cooking'],
-        totalConnections: 62
+        title: "Art Exhibition",
+        date: "Oct 20, 2024",
+        startTime: "10:00 AM",
+        endTime: "5:00 PM",
+        location: "Gallery Downtown",
+        organiser: "Art Society",
+        status: "active",
+        bookingSlots: 100,
+        description: "Unique art exhibition featuring local artists.",
+        format: "indoor",
+        type: "arts",
+        region: "South",
+        price: 0,
+        image: "https://via.placeholder.com/300x200",
       },
       {
         id: 3,
-        name: 'Siti Aminah',
-        role: 'Factory Worker',
-        company: 'Metro Electronics Pte Ltd',
-        avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face',
-        initials: 'SA',
-        mutualFriends: 15,
-        friendsSince: '2022',
-        bio: 'Dedicated factory worker from Indonesia. Working hard to support family back home while learning new skills.',
-        interests: ['Badminton', 'Indonesian Food', 'Learning English'],
-        totalConnections: 38
+        title: "Virtual Cooking Class",
+        date: "Oct 18, 2024",
+        startTime: "6:00 PM",
+        endTime: "8:00 PM",
+        location: "Online",
+        organiser: "Culinary Institute",
+        status: "active",
+        bookingSlots: 30,
+        description: "Learn to cook traditional dishes from home.",
+        format: "online",
+        type: "workshop",
+        region: "North",
+        price: 50,
+        image: "https://via.placeholder.com/300x200",
       },
-      {
-        id: 4,
-        name: 'Zhang Wei',
-        role: 'Kitchen Helper',
-        company: 'Golden Dragon Restaurant',
-        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
-        initials: 'ZW',
-        mutualFriends: 6,
-        friendsSince: '2023',
-        bio: 'Hardworking kitchen helper from China. Learning Singaporean cuisine and saving money for family.',
-        interests: ['Cooking', 'Table Tennis', 'Chinese Opera'],
-        totalConnections: 28
-      },
-      {
-        id: 5,
-        name: 'Kumari Devi',
-        role: 'Cleaner',
-        company: 'CleanPro Services Pte Ltd',
-        avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face',
-        initials: 'KD',
-        mutualFriends: 20,
-        friendsSince: '2019',
-        bio: 'Experienced cleaner from Bangladesh. Takes pride in keeping Singapore clean and beautiful.',
-        interests: ['Bengali Music', 'Gardening', 'Community Service'],
-        totalConnections: 54
-      },
-      {
-        id: 6,
-        name: 'Jose Reyes',
-        role: 'Security Guard',
-        company: 'SecureGuard Services Pte Ltd',
-        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face',
-        initials: 'JR',
-        mutualFriends: 9,
-        friendsSince: '2023',
-        bio: 'Reliable security guard from Philippines. Ensuring safety and security for Singaporean communities.',
-        interests: ['Basketball', 'Filipino Movies', 'Reading'],
-        totalConnections: 41
-      }
-    ])
-
-    const viewProfile = (booking) => {
-      selectedBooking.value = booking
-      showProfileDialog.value = true
-    }
-
-    const closeProfile = () => {
-      showProfileDialog.value = false
-      selectedBooking.value = null
-    }
+    ]);
 
     return {
       bookings,
       showProfileDialog,
       selectedBooking,
-      viewProfile,
+      router,
       closeProfile,
-      toast
-    }
-  }
-}
+      cancelBooking,
+      toast,
+    };
+  },
+};
 </script>
 
 <style scoped>
@@ -270,16 +268,16 @@ export default {
   margin-bottom: 3rem;
 }
 
-/* .page-title {
+.page-title {
   font-size: 2.5rem;
   color: #ff7733;
   margin-bottom: 0.5rem;
-} */
+}
 
-.page-subtitle {
+/* .page-subtitle {
   color: #666;
   font-size: 1.1rem;
-}
+} */
 
 .bookings-grid {
   display: grid;
@@ -289,7 +287,7 @@ export default {
 
 .booking-card {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-  background-color: #FFC67B;
+  background-color: #ffc67b;
   border-radius: 20px;
 }
 
@@ -352,6 +350,11 @@ export default {
   display: flex;
   gap: 0.5rem;
   justify-content: center;
+}
+
+.cancel-booking-btn {
+  background-color: #e63b0777;
+  color: white;
 }
 
 .action-btn {
@@ -439,16 +442,16 @@ export default {
   .bookings-page {
     padding: 1rem;
   }
-  
+
   .bookings-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .profile-header {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .dialog-actions {
     flex-direction: column;
   }
