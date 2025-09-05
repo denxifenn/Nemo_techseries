@@ -1,17 +1,32 @@
 <template>
   <div class="event-detail">
-    <!-- Hero Section with Image -->
-    <div class="hero-section">
-      <div class="hero-image-container">
-        <img :src="event.image" :alt="event.title" class="hero-image">
-        <div class="hero-overlay">
-          <div class="hero-content">
-            <h1 class="hero-title">{{ event.title }}</h1>
-            <p class="hero-subtitle">{{ event.description }}</p>
+    <!-- Loading State -->
+    <div v-if="loading" class="loading-container">
+      <div class="loading-spinner"></div>
+      <p>Loading event details...</p>
+    </div>
+
+    <!-- Error State -->
+    <div v-else-if="error" class="error-container">
+      <h2>Error</h2>
+      <p>{{ error }}</p>
+      <button @click="$router.go(-1)" class="back-button">Go Back</button>
+    </div>
+
+    <!-- Event Content -->
+    <div v-else-if="event">
+      <!-- Hero Section with Image -->
+      <div class="hero-section">
+        <div class="hero-image-container">
+          <img :src="event.image" :alt="event.title" class="hero-image">
+          <div class="hero-overlay">
+            <div class="hero-content">
+              <h1 class="hero-title">{{ event.title }}</h1>
+              <p class="hero-subtitle">{{ event.description }}</p>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
     <!-- Main Content Container -->
     <div class="content-container">
@@ -136,6 +151,7 @@
         </div>
       </div>
     </div>
+    </div>
   </div>
 </template>
 
@@ -150,23 +166,24 @@ export default {
   props: {
     eventId: {
       type: [String, Number],
-      required: false,
-      default: 1
+      required: true
     }
   },
   data() {
     return {
       isBooking: false,
-      event: {
-        id: 1,
-        title: 'Basketball Tournament',
-        date: 'Oct 15, 2024',
-        location: 'Sports Center',
-        description: 'Annual basketball tournament for all skill levels.',
-        format: 'Indoor',
-        type: 'Sports',
-        region: 'North',
-        image: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2340&q=80'
+      event: null,
+      loading: true,
+      error: null
+    }
+  },
+  watch: {
+    eventId: {
+      immediate: true,
+      handler(newId) {
+        if (newId) {
+          this.fetchEventData(newId)
+        }
       }
     }
   },
@@ -176,9 +193,9 @@ export default {
       try {
         // Simulate API call
         await new Promise(resolve => setTimeout(resolve, 1500));
-        
+
         this.$emit('book-event', this.event);
-        
+
         // Show success message (you can replace this with a toast notification)
         alert('Successfully registered for the event!');
       } catch (error) {
@@ -188,9 +205,164 @@ export default {
         this.isBooking = false;
       }
     },
-    
-    fetchEventData(eventId) {
-      console.log('Fetching event data for ID:', eventId);
+
+    async fetchEventData(eventId) {
+      this.loading = true;
+      this.error = null;
+
+      try {
+        // Mock data - in a real app, this would be an API call
+        const mockEvents = [
+          {
+            id: 1,
+            title: 'Basketball Tournament',
+            date: 'Oct 15, 2024',
+            location: 'Sports Center',
+            description: 'Annual basketball tournament for all skill levels.',
+            format: 'indoor',
+            type: 'sports',
+            region: 'North',
+            image: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2340&q=80'
+          },
+          {
+            id: 2,
+            title: 'Art Exhibition',
+            date: 'Oct 20, 2024',
+            location: 'Gallery Downtown',
+            description: 'Unique art exhibition featuring local artists.',
+            format: 'indoor',
+            type: 'arts',
+            region: 'South',
+            image: 'https://via.placeholder.com/300x200'
+          },
+          {
+            id: 3,
+            title: 'Virtual Cooking Class',
+            date: 'Oct 18, 2024',
+            location: 'Online',
+            description: 'Learn to cook traditional dishes from home.',
+            format: 'online',
+            type: 'workshop',
+            region: 'North',
+            image: 'https://via.placeholder.com/300x200'
+          },
+          {
+            id: 4,
+            title: 'Outdoor Yoga',
+            date: 'Oct 22, 2024',
+            location: 'Central Park',
+            description: 'Morning yoga session in the park.',
+            format: 'outdoor',
+            type: 'sports',
+            region: 'Central',
+            image: 'https://via.placeholder.com/300x200'
+          },
+          {
+            id: 5,
+            title: 'Music Festival',
+            date: 'Oct 25, 2024',
+            location: 'City Park',
+            description: 'Two-day music festival featuring various artists.',
+            format: 'outdoor',
+            type: 'music',
+            region: 'West',
+            image: 'https://via.placeholder.com/300x200'
+          },
+          {
+            id: 6,
+            title: 'Tech Webinar',
+            date: 'Oct 30, 2024',
+            location: 'Online',
+            description: 'Learn about the latest technology trends.',
+            format: 'online',
+            type: 'workshop',
+            region: 'East',
+            image: 'https://via.placeholder.com/300x200'
+          },
+          {
+            id: 7,
+            title: 'Jazz Night Live',
+            date: 'Nov 5, 2024',
+            location: 'Blue Note Jazz Club',
+            description: 'An evening of smooth jazz with local and international artists.',
+            format: 'indoor',
+            type: 'music',
+            region: 'Central',
+            image: 'https://via.placeholder.com/300x200'
+          },
+          {
+            id: 8,
+            title: 'Modern Dance Performance',
+            date: 'Nov 8, 2024',
+            location: 'City Theater',
+            description: 'Contemporary dance showcase featuring innovative choreography.',
+            format: 'indoor',
+            type: 'performance',
+            region: 'West',
+            image: 'https://via.placeholder.com/300x200'
+          },
+          {
+            id: 9,
+            title: 'Digital Photography Workshop',
+            date: 'Nov 12, 2024',
+            location: 'Community Center',
+            description: 'Hands-on workshop covering composition, lighting, and editing techniques.',
+            format: 'indoor',
+            type: 'workshop',
+            region: 'North',
+            image: 'https://via.placeholder.com/300x200'
+          },
+          {
+            id: 10,
+            title: 'Historic City Walking Tour',
+            date: 'Nov 15, 2024',
+            location: 'Old Town Square',
+            description: 'Explore the city\'s rich history with a knowledgeable local guide.',
+            format: 'outdoor',
+            type: 'tours',
+            region: 'Central',
+            image: 'https://via.placeholder.com/300x200'
+          },
+          {
+            id: 11,
+            title: 'Beach Volleyball Championship',
+            date: 'Nov 18, 2024',
+            location: 'Sunny Beach Resort',
+            description: 'Annual beach volleyball tournament with teams from across the region.',
+            format: 'outdoor',
+            type: 'sports',
+            region: 'South',
+            image: 'https://via.placeholder.com/300x200'
+          },
+          {
+            id: 12,
+            title: 'International Food Festival',
+            date: 'Nov 22, 2024',
+            location: 'Riverside Park',
+            description: 'Celebrate global cuisines with food stalls, cooking demonstrations, and cultural performances.',
+            format: 'outdoor',
+            type: 'culture',
+            region: 'East',
+            image: 'https://via.placeholder.com/300x200'
+          }
+        ];
+
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        const event = mockEvents.find(e => e.id === parseInt(eventId));
+
+        if (event) {
+          this.event = event;
+        } else {
+          this.error = 'Event not found';
+        }
+      } catch (error) {
+        console.error('Error fetching event data:', error);
+        this.error = 'Failed to load event data';
+      } finally {
+        this.loading = false;
+      }
     }
   },
 
@@ -519,6 +691,69 @@ export default {
   'wght' 400,
   'GRAD' 0,
   'opsz' 24;
+}
+
+/* Loading and Error States */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  gap: 20px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #ff6b35;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  text-align: center;
+  gap: 20px;
+}
+
+.error-container h2 {
+  color: #ff6b35;
+  font-size: 2rem;
+  margin: 0;
+}
+
+.error-container p {
+  color: #666;
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.back-button {
+  background: linear-gradient(135deg, #ff6b35, #ff8c42);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.back-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 107, 53, 0.3);
 }
 
 /* Responsive Design */
