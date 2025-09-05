@@ -66,34 +66,10 @@
             <h2>About This Event</h2>
             <p class="event-description">{{ event.description }}</p>
             <p class="additional-info">
-              Join us for this exciting {{ event.type }} event! Whether you're a beginner or experienced participant, 
-              this {{ event.format }} event welcomes all skill levels. Don't miss out on this amazing opportunity 
+              Join us for this exciting event! Don't miss out on this amazing opportunity 
               to connect with fellow enthusiasts in the {{ event.region }} region.
             </p>
           </div>
-
-          <!-- Event Highlights -->
-          <!-- <div class="highlights-section">
-            <h3>Event Highlights</h3>
-            <div class="highlights-grid">
-              <div class="highlight-item">
-                <i class="pi pi-users"></i>
-                <span>All Skill Levels Welcome</span>
-              </div>
-              <div class="highlight-item">
-                <i class="pi pi-trophy"></i>
-                <span>Competitive Tournament</span>
-              </div>
-              <div class="highlight-item">
-                <i class="pi pi-heart"></i>
-                <span>Community Building</span>
-              </div>
-              <div class="highlight-item">
-                <i class="pi pi-star"></i>
-                <span>Professional Organization</span>
-              </div>
-            </div>
-          </div> -->
         </div>
 
         <!-- Right Column - Booking & Info -->
@@ -126,18 +102,13 @@
 
           <!-- Organizer Card -->
           <div class="organizer-card">
-            <h3>Event Organizer</h3>
+            <h3>Event Organiser</h3>
             <div class="organizer-info">
               <img src="https://via.placeholder.com/60x60/ff6b35/white?text=ORG" alt="Organizer" class="organizer-avatar">
               <div class="organizer-details">
                 <h4>Sports Center Management</h4>
-                <p>Professional event organizers with 10+ years of experience</p>
               </div>
             </div>
-            <!-- <Button class="contact-button" outlined>
-              <i class="pi pi-envelope"></i>
-              <span>Contact Organizer</span>
-            </Button> -->
           </div>
 
           <!-- Additional Info Card
@@ -219,7 +190,6 @@ export default {
     },
     
     fetchEventData(eventId) {
-      // In a real app, you would fetch event data from an API
       console.log('Fetching event data for ID:', eventId);
     }
   },
@@ -401,53 +371,6 @@ export default {
   color: #666;
 }
 
-/* Highlights Section */
-/* .highlights-section {
-  background: white;
-  border-radius: 12px;
-  padding: 32px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  border: 1px solid #f0f0f0;
-} */
-
-/* .highlights-section h3 {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #333;
-  margin-bottom: 24px;
-}
-
-.highlights-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-} */
-
-/* .highlight-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  border-radius: 8px;
-  background: #f8f9fa;
-  transition: all 0.3s ease;
-}
-
-.highlight-item:hover {
-  background: #fff5f0;
-  transform: translateX(4px);
-}
-
-.highlight-item i {
-  color: #ff6b35;
-  font-size: 1.1rem;
-}
-
-.highlight-item span {
-  font-weight: 500;
-  color: #333;
-} */
-
 /* Sidebar */
 .sidebar {
   display: flex;
@@ -552,16 +475,6 @@ export default {
   color: #666;
   line-height: 1.4;
 }
-
-/* .contact-button {
-  width: 100%;
-  border-color: #ff6b35 !important;
-  color: #ff6b35 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 8px !important;
-} */
 
 /* Info Card */
 .info-card {
