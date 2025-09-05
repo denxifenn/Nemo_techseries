@@ -2,7 +2,7 @@
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import Card from 'primevue/card'
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed } from 'vue'
 import EventFilterSidebar from '../components/EventFilterSidebar.vue'
 
 export default {
@@ -21,9 +21,15 @@ export default {
     
     const currentFilters = ref({
       search: '',
+      dateRange: {
+        start: null,
+        end: null
+      },
+      timing: [],
       format: [],
       type: [],
-      region: []
+      region: [],
+      priceRange: [0, 500]
     })
 
     // Sample events data - replace with your API call
@@ -32,71 +38,210 @@ export default {
         id: 1,
         title: 'Basketball Tournament',
         date: 'Oct 15, 2024',
+        startTime: '2:00 PM',
+        endTime: '6:00 PM',
         location: 'Sports Center',
+        organiser: 'Sports Club',
+        status: 'active',
+        bookingSlots: 50,
         description: 'Annual basketball tournament for all skill levels.',
         format: 'indoor',
         type: 'sports',
         region: 'North',
+        price: 35,
         image: 'https://via.placeholder.com/300x200'
       },
       {
         id: 2,
         title: 'Art Exhibition',
         date: 'Oct 20, 2024',
+        startTime: '10:00 AM',
+        endTime: '5:00 PM',
         location: 'Gallery Downtown',
+        organiser: 'Art Society',
+        status: 'active',
+        bookingSlots: 100,
         description: 'Unique art exhibition featuring local artists.',
         format: 'indoor',
         type: 'arts',
         region: 'South',
+        price: 0,
         image: 'https://via.placeholder.com/300x200'
       },
       {
         id: 3,
         title: 'Virtual Cooking Class',
         date: 'Oct 18, 2024',
+        startTime: '6:00 PM',
+        endTime: '8:00 PM',
         location: 'Online',
+        organiser: 'Culinary Institute',
+        status: 'active',
+        bookingSlots: 30,
         description: 'Learn to cook traditional dishes from home.',
         format: 'online',
-        type: 'culture',
+        type: 'workshop',
         region: 'North',
+        price: 50,
         image: 'https://via.placeholder.com/300x200'
       },
       {
         id: 4,
         title: 'Outdoor Yoga',
         date: 'Oct 22, 2024',
+        startTime: '8:00 AM',
+        endTime: '9:30 AM',
         location: 'Central Park',
+        organiser: 'Wellness Center',
+        status: 'active',
+        bookingSlots: 25,
         description: 'Morning yoga session in the park.',
         format: 'outdoor',
         type: 'sports',
         region: 'Central',
+        price: 0,
         image: 'https://via.placeholder.com/300x200'
       },
       {
         id: 5,
         title: 'Music Festival',
         date: 'Oct 25, 2024',
+        startTime: '7:00 PM',
+        endTime: '11:00 PM',
         location: 'City Park',
+        organiser: 'Music Events Co.',
+        status: 'active',
+        bookingSlots: 200,
         description: 'Two-day music festival featuring various artists.',
         format: 'outdoor',
-        type: 'arts',
+        type: 'music',
         region: 'West',
+        price: 120,
         image: 'https://via.placeholder.com/300x200'
       },
       {
         id: 6,
         title: 'Tech Webinar',
         date: 'Oct 30, 2024',
+        startTime: '3:00 PM',
+        endTime: '4:30 PM',
         location: 'Online',
+        organiser: 'Tech Hub',
+        status: 'active',
+        bookingSlots: 150,
         description: 'Learn about the latest technology trends.',
         format: 'online',
+        type: 'workshop',
+        region: 'East',
+        price: 0,
+        image: 'https://via.placeholder.com/300x200'
+      },
+      {
+        id: 7,
+        title: 'Jazz Night Live',
+        date: 'Nov 5, 2024',
+        startTime: '8:00 PM',
+        endTime: '11:00 PM',
+        location: 'Blue Note Jazz Club',
+        organiser: 'Jazz Society',
+        status: 'active',
+        bookingSlots: 80,
+        description: 'An evening of smooth jazz with local and international artists.',
+        format: 'indoor',
+        type: 'music',
+        region: 'Central',
+        price: 80,
+        image: 'https://via.placeholder.com/300x200'
+      },
+      {
+        id: 8,
+        title: 'Modern Dance Performance',
+        date: 'Nov 8, 2024',
+        startTime: '7:30 PM',
+        endTime: '9:30 PM',
+        location: 'City Theater',
+        organiser: 'Dance Collective',
+        status: 'active',
+        bookingSlots: 120,
+        description: 'Contemporary dance showcase featuring innovative choreography.',
+        format: 'indoor',
+        type: 'performance',
+        region: 'West',
+        price: 35,
+        image: 'https://via.placeholder.com/300x200'
+      },
+      {
+        id: 9,
+        title: 'Digital Photography Workshop',
+        date: 'Nov 12, 2024',
+        startTime: '10:00 AM',
+        endTime: '4:00 PM',
+        location: 'Community Center',
+        organiser: 'Photo Academy',
+        status: 'active',
+        bookingSlots: 25,
+        description: 'Hands-on workshop covering composition, lighting, and editing techniques.',
+        format: 'indoor',
+        type: 'workshop',
+        region: 'North',
+        price: 50,
+        image: 'https://via.placeholder.com/300x200'
+      },
+      {
+        id: 10,
+        title: 'Historic City Walking Tour',
+        date: 'Nov 15, 2024',
+        startTime: '9:00 AM',
+        endTime: '12:00 PM',
+        location: 'Old Town Square',
+        organiser: 'Heritage Tours',
+        status: 'active',
+        bookingSlots: 40,
+        description: 'Explore the city\'s rich history with a knowledgeable local guide.',
+        format: 'outdoor',
+        type: 'tours',
+        region: 'Central',
+        price: 75,
+        image: 'https://via.placeholder.com/300x200'
+      },
+      {
+        id: 11,
+        title: 'Beach Volleyball Championship',
+        date: 'Nov 18, 2024',
+        startTime: '8:00 AM',
+        endTime: '6:00 PM',
+        location: 'Sunny Beach Resort',
+        organiser: 'Volleyball Association',
+        status: 'active',
+        bookingSlots: 200,
+        description: 'Annual beach volleyball tournament with teams from across the region.',
+        format: 'outdoor',
+        type: 'sports',
+        region: 'South',
+        price: 0,
+        image: 'https://via.placeholder.com/300x200'
+      },
+      {
+        id: 12,
+        title: 'International Food Festival',
+        date: 'Nov 22, 2024',
+        startTime: '11:00 AM',
+        endTime: '9:00 PM',
+        location: 'Riverside Park',
+        organiser: 'Culinary Events Co.',
+        status: 'active',
+        bookingSlots: 300,
+        description: 'Celebrate global cuisines with food stalls, cooking demonstrations, and cultural performances.',
+        format: 'outdoor',
         type: 'culture',
         region: 'East',
+        price: 150,
         image: 'https://via.placeholder.com/300x200'
       }
     ])
 
     const handleFiltersChange = (filters) => {
+      console.log('Discover: Received filters:', filters)
       currentFilters.value = filters
     }
 
@@ -110,7 +255,7 @@ export default {
 
       // Combine hero search and filter sidebar search
       const combinedSearch = searchTerm.value || currentFilters.value.search
-      
+
       // Filter by search term
       if (combinedSearch) {
         const search = combinedSearch.toLowerCase()
@@ -121,11 +266,79 @@ export default {
         )
       }
 
+      // Filter by date range
+      if (currentFilters.value.dateRange.start || currentFilters.value.dateRange.end) {
+        filtered = filtered.filter(event => {
+          const eventDate = new Date(event.date)
+          const start = currentFilters.value.dateRange.start ? new Date(currentFilters.value.dateRange.start) : null
+          const end = currentFilters.value.dateRange.end ? new Date(currentFilters.value.dateRange.end) : null
+
+          if (start && end) {
+            return eventDate >= start && eventDate <= end
+          } else if (start) {
+            return eventDate >= start
+          } else if (end) {
+            return eventDate <= end
+          }
+          return true
+        })
+      }
+
+      // Filter by timing
+      if (currentFilters.value.timing.length > 0) {
+        filtered = filtered.filter(event => {
+          const timeStr = event.startTime
+          const [time, period] = timeStr.split(' ')
+          const [hours, minutes] = time.split(':').map(Number)
+          let hour24 = hours
+          if (period === 'PM' && hours !== 12) hour24 += 12
+          if (period === 'AM' && hours === 12) hour24 = 0
+
+          let timingCategory = ''
+          if (hour24 >= 5 && hour24 < 12) timingCategory = 'morning'
+          else if (hour24 >= 12 && hour24 < 16) timingCategory = 'afternoon'
+          else if (hour24 >= 16 && hour24 < 19) timingCategory = 'evening'
+          else timingCategory = 'night'
+
+          return currentFilters.value.timing.includes(timingCategory)
+        })
+      }
+
       // Filter by format
       if (currentFilters.value.format.length > 0) {
-        filtered = filtered.filter(event =>
-          currentFilters.value.format.includes(event.format)
-        )
+        filtered = filtered.filter(event => {
+          const selectedFormats = currentFilters.value.format
+          const isOfflineSelected = selectedFormats.includes('offline')
+          const isIndoorSelected = selectedFormats.includes('indoor')
+          const isOutdoorSelected = selectedFormats.includes('outdoor')
+
+          // If offline is selected, include both indoor and outdoor
+          if (isOfflineSelected && !isIndoorSelected && !isOutdoorSelected) {
+            return event.format === 'indoor' || event.format === 'outdoor'
+          }
+
+          // If specific formats are selected, match them exactly
+          if (isIndoorSelected && event.format === 'indoor') return true
+          if (isOutdoorSelected && event.format === 'outdoor') return true
+          if (selectedFormats.includes('online') && event.format === 'online') return true
+
+          // If offline + indoor are selected, show only indoor
+          if (isOfflineSelected && isIndoorSelected && !isOutdoorSelected) {
+            return event.format === 'indoor'
+          }
+
+          // If offline + outdoor are selected, show only outdoor
+          if (isOfflineSelected && isOutdoorSelected && !isIndoorSelected) {
+            return event.format === 'outdoor'
+          }
+
+          // If offline + indoor + outdoor are selected, show both
+          if (isOfflineSelected && isIndoorSelected && isOutdoorSelected) {
+            return event.format === 'indoor' || event.format === 'outdoor'
+          }
+
+          return false
+        })
       }
 
       // Filter by type
@@ -140,6 +353,14 @@ export default {
         filtered = filtered.filter(event =>
           currentFilters.value.region.includes(event.region)
         )
+      }
+
+      // Filter by price range
+      if (currentFilters.value.priceRange[0] > 0 || currentFilters.value.priceRange[1] < 500) {
+        filtered = filtered.filter(event => {
+          const eventPrice = event.price
+          return eventPrice >= currentFilters.value.priceRange[0] && eventPrice <= currentFilters.value.priceRange[1]
+        })
       }
 
       return filtered
@@ -212,8 +433,11 @@ export default {
               <template #title>{{ event.title }}</template>
               <template #subtitle>
                 <div class="event-meta">
-                  <span class="event-date">{{ event.date }}</span>
+                  <span class="event-date">{{ event.date }} at {{ event.startTime }} - {{ event.endTime }}</span>
                   <span class="event-location">📍 {{ event.location }}</span>
+                  <span class="event-organiser">👤 {{ event.organiser }}</span>
+                  <span class="event-slots">🎫 {{ event.bookingSlots }} slots</span>
+                  <span class="event-price">{{ event.price === 0 ? '🆓 Free' : `💰 $${event.price}` }}</span>
                 </div>
               </template>
               <template #content>
@@ -348,11 +572,13 @@ export default {
 }
 
 .sidebar {
-  flex: 0 0 200px; /* fixed width */
+  flex: 0 0 280px; /* increased width for better layout */
   top: 25px;
   position: sticky;
   align-self: flex-start;
   height: fit-content;
+  max-height: calc(100vh - 100px); /* Adjust based on header height */
+  overflow-y: auto;
 }
 
 .events-grid {
@@ -365,10 +591,29 @@ export default {
 .event-card {
   width: 100%;
   transition: transform 0.2s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .event-card:hover {
   transform: translateY(-2px);
+}
+
+.event-card :deep(.p-card) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.event-card :deep(.p-card-body) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.event-card :deep(.p-card-content) {
+  flex: 1;
 }
 
 .event-image {
@@ -388,6 +633,12 @@ export default {
   gap: 4px;
   font-size: 0.9em;
   color: #6b7280;
+}
+
+.event-meta span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .event-date {
