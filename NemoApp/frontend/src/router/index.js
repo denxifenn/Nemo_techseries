@@ -30,9 +30,10 @@ const routes = [
     component: Discover
   },
   {
-    path: '/event',
+    path: '/event/:eventId',
     name: 'Event',
-    component: Event
+    component: Event,
+    props: true
   },
   {
     path: '/event-creation',
