@@ -8,7 +8,7 @@
       <router-link to="/friends" class="nav-btn">
         <Button icon="pi pi-users" label="Friends" class="nav-btn" text />
       </router-link>
-      <router-link to="/mybookings" class="nav-btn">
+      <router-link to="/my-bookings" class="nav-btn">
         <Button icon="pi pi-calendar" label="My Bookings" class="nav-btn" text />
       </router-link>
     </nav>
