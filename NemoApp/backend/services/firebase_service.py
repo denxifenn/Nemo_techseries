@@ -3,6 +3,7 @@ from firebase_admin import credentials, firestore, auth
 from firebase_admin import exceptions as firebase_exceptions
 from datetime import datetime
 import os
+from utils.phone_utils import is_phone_email, email_to_phone
 
 # Path to service account key (override with env FIREBASE_CREDENTIALS_PATH)
 DEFAULT_SERVICE_ACCOUNT_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'firebase', 'firebase-admin-key.json')
@@ -78,17 +79,18 @@ class FirebaseService:
         return None
 
     @staticmethod
-    def ensure_user_doc(uid: str, email: str | None = None, name: str | None = None) -> dict:
+    def ensure_user_doc(uid: str, email: str | None = None, name: str | None = None, phoneNumber: str | None = None) -> dict:
         """
         Ensure a Firestore users/{uid} document exists.
         - If missing: create with sensible defaults (role=user, friends=[], profilePicture='')
           using provided email/name or fetched via Admin SDK.
-        - If exists: backfill core fields (uid, email/name if absent, role default) without clobbering others.
+        - If exists: backfill core fields (uid, email/name/phoneNumber if absent, role default) without clobbering others.
         Returns the user document as dict.
         """
         try:
             doc_ref = db.collection('users').document(uid)
             snap = doc_ref.get()
+
             if not snap.exists:
                 # Attempt to enrich from Admin SDK if not provided
                 if not email or not name:
@@ -99,9 +101,17 @@ class FirebaseService:
                     except Exception:
                         pass
 
+                # Infer phone from provided phoneNumber or email alias
+                inferred_phone = None
+                if phoneNumber:
+                    inferred_phone = str(phoneNumber).strip()
+                elif email and is_phone_email(email):
+                    inferred_phone = email_to_phone(email)
+
                 user_data = {
                     'uid': uid,
                     'email': email or '',
+                    'phoneNumber': inferred_phone or '',
                     'name': (name or '').strip(),
                     'role': 'user',
                     'profilePicture': '',
@@ -122,6 +132,13 @@ class FirebaseService:
                 updates['email'] = email
             if name and not data.get('name'):
                 updates['name'] = (name or '').strip()
+
+            # Phone number handling: prefer explicit phoneNumber, otherwise infer from email alias
+            if phoneNumber and not data.get('phoneNumber'):
+                updates['phoneNumber'] = str(phoneNumber).strip()
+            elif 'phoneNumber' not in data and email and is_phone_email(email):
+                updates['phoneNumber'] = email_to_phone(email)
+
             if not data.get('role'):
                 updates['role'] = 'user'
             if 'friends' not in data:
@@ -137,9 +154,16 @@ class FirebaseService:
             return data
         except Exception:
             # Fallback minimal representation
+            minimal_phone = None
+            if phoneNumber:
+                minimal_phone = str(phoneNumber).strip()
+            elif email and is_phone_email(email):
+                minimal_phone = email_to_phone(email)
+
             minimal = {
                 'uid': uid,
                 'email': email or '',
+                'phoneNumber': minimal_phone or '',
                 'name': (name or '').strip(),
                 'role': 'user',
                 'friends': [],

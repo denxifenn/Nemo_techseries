@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from services.firebase_service import FirebaseService, db
 from datetime import datetime
+from utils.phone_utils import format_singapore_phone
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -9,12 +10,16 @@ auth_bp = Blueprint('auth', __name__)
 @auth_bp.route('/api/auth/login', methods=['POST'])
 def login():
     """
-    Login endpoint expects the frontend to perform Firebase client-side authentication
-    and send the ID token here for verification. The backend will verify token and
-    return basic user info from Firestore.
+    Backend login handshake.
+    - Frontend signs in with Firebase client SDK (email+password via phone alias).
+    - Frontend sends the Firebase ID token here.
+    - Optionally accepts phoneNumber and name to enrich the user doc on first login.
     """
     data = request.get_json() or {}
     id_token = data.get('idToken')
+    phone_number = data.get('phoneNumber')  # optional, free-form from client
+    name = data.get('name')  # optional display name
+
     if not id_token:
         return jsonify({'success': False, 'error': 'Missing idToken'}), 400
 
@@ -22,12 +27,21 @@ def login():
     if not uid:
         return jsonify({'success': False, 'error': 'Invalid token'}), 401
 
-    # Ensure user profile exists; auto-provision on first login
-    user = FirebaseService.ensure_user_doc(uid)
+    # Normalize Singapore phone to E.164 (+65XXXXXXXX) if provided; ignore invalid formats
+    normalized_phone = None
+    if phone_number:
+        try:
+            normalized_phone = format_singapore_phone(phone_number)
+        except Exception:
+            normalized_phone = None
+
+    # Ensure user profile exists; auto-provision on first login, merge phoneNumber/name if provided
+    user = FirebaseService.ensure_user_doc(uid, email=None, name=name, phoneNumber=normalized_phone)
 
     return jsonify({'success': True, 'user': {
         'uid': user.get('uid') or uid,
         'email': user.get('email'),
+        'phoneNumber': user.get('phoneNumber'),
         'name': user.get('name'),
         'role': user.get('role', 'user')
     }}), 200

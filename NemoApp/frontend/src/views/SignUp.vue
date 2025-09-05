@@ -4,9 +4,10 @@
 
     <section class="panel">
       <div class="row">
-        <label>Email</label>
-        <input v-model="email" type="email" placeholder="you@example.com" />
+        <label>Phone Number (+65)</label>
+        <input v-model="phone" type="tel" placeholder="91234567" />
       </div>
+      <div v-if="phone && !isPhoneValid" class="error">Enter 8-digit Singapore number</div>
       <div class="row">
         <label>Password</label>
         <input v-model="password" type="password" placeholder="Password123!" />
@@ -16,7 +17,7 @@
         <input v-model="displayName" type="text" placeholder="Your name" />
       </div>
       <div class="row">
-        <button @click="doFirebaseSignUp" :disabled="loading">Create Firebase Account</button>
+        <button @click="doFirebaseSignUp" :disabled="loading || !isPhoneValid || !password">Create Firebase Account</button>
         <button @click="doBackendLogin" :disabled="loading">Backend Login (provision profile)</button>
         <button @click="goTester">Open API Tester</button>
       </div>
@@ -36,30 +37,41 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { auth, createUserWithEmailAndPassword, getIdToken } from '../services/firebase';
 import { updateProfile } from 'firebase/auth';
 import api from '../services/api';
+import { formatSingaporePhone, phoneToEmail, emailToPhone } from '../utils/phoneUtils';
 
 const router = useRouter();
 const toast = useToast();
 
-const email = ref('');
+const phone = ref('');
 const password = ref('');
 const displayName = ref('');
 const error = ref('');
 const result = ref('');
 const loading = ref(false);
+const isPhoneValid = computed(() => {
+  try {
+    formatSingaporePhone(phone.value);
+    return true;
+  } catch {
+    return false;
+  }
+});
 
 async function doFirebaseSignUp() {
   error.value = '';
   result.value = '';
   loading.value = true;
   try {
-    if (!email.value || !password.value) throw new Error('Email and password required');
-    const cred = await createUserWithEmailAndPassword(auth, email.value, password.value);
+    if (!phone.value || !password.value) throw new Error('Phone and password required');
+    const formatted = formatSingaporePhone(phone.value);
+    const emailAlias = phoneToEmail(formatted);
+    const cred = await createUserWithEmailAndPassword(auth, emailAlias, password.value);
     if (displayName.value) {
       try {
         await updateProfile(cred.user, { displayName: displayName.value });
@@ -67,8 +79,8 @@ async function doFirebaseSignUp() {
         console.warn('updateProfile failed:', e);
       }
     }
-    result.value = `Sign up success: ${cred.user.email}`;
-    toast.add({ severity: 'success', summary: 'Sign up success', detail: cred.user.email, life: 3000 });
+    result.value = `Sign up success: ${formatted}`;
+    toast.add({ severity: 'success', summary: 'Sign up success', detail: formatted, life: 3000 });
   } catch (e) {
     const msg = e?.message || String(e);
     error.value = msg;
@@ -85,8 +97,19 @@ async function doBackendLogin() {
   try {
     const token = await getIdToken(true);
     if (!token) throw new Error('No Firebase ID token. Sign in first.');
-    const resp = await api.backendLoginWithIdToken(token);
-    const userLabel = resp.data?.user?.email || resp.data?.user?.uid || 'unknown';
+    const currentEmail = auth.currentUser?.email || '';
+    let inferredPhone = emailToPhone(currentEmail);
+    if (!inferredPhone && phone.value) {
+      try {
+        inferredPhone = formatSingaporePhone(phone.value);
+      } catch {}
+    }
+    const name = auth.currentUser?.displayName || (displayName.value || '').trim() || undefined;
+    const resp = await api.backendLoginWithIdToken(token, {
+      phoneNumber: inferredPhone,
+      name,
+    });
+    const userLabel = resp.data?.user?.phoneNumber || resp.data?.user?.email || resp.data?.user?.uid || 'unknown';
     result.value = `Backend login OK. User: ${userLabel}`;
     toast.add({ severity: 'success', summary: 'Backend login success', detail: userLabel, life: 3000 });
   } catch (e) {

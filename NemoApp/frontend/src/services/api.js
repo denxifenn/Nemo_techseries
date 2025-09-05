@@ -180,10 +180,12 @@ const api = {
   },
 
   // Auth helpers specific to Nemo backend
-  async backendLoginWithIdToken(idToken) {
+  // extra may include: { phoneNumber, name }
+  async backendLoginWithIdToken(idToken, extra = {}) {
+    const body = { idToken, ...(extra || {}) };
     return request('/api/auth/login', {
       method: 'POST',
-      body: { idToken },
+      body,
       // No need to attach auth header; backend expects idToken field
       skipAuth: true,
     });

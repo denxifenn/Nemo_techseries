@@ -13,7 +13,7 @@ Authorization: Bearer <firebase_id_token>
 Note on UIDs and signup/login flow:
 - Normal users receive Firebase-generated random, immutable UIDs on registration/sign-in. These are the canonical identifiers used by the backend and Firestore.
 - Admin accounts may be provisioned via Firebase Admin SDK with a custom, human-readable UID (e.g., "admin1"). This is optional and performed outside normal user signup.
-- Frontend handles email+password sign-in via Firebase Auth to obtain an ID token. The backend never receives raw passwords; it only verifies the ID token and extracts the UID.
+- Frontend handles phone+password sign-in via Firebase Auth using a phone-to-email alias (e.g., 6591234567@phone.local) to obtain an ID token. The backend never receives raw passwords; it only verifies the ID token and extracts the UID.
 ## Response Format
 All responses follow this structure:
 ```json
@@ -31,7 +31,7 @@ All responses follow this structure:
 ### 1. Authentication
 
 #### Signup (Frontend via Firebase Auth)
-- Users sign up in the frontend using Firebase Auth (email/password). The backend never receives raw passwords.
+- Users sign up in the frontend using Firebase Auth (phone+password via phone-to-email alias). The backend never receives raw passwords.
 - Firebase issues an immutable UID per user (random alphanumeric string).
 - Admin/service accounts can still be provisioned via the Firebase Admin SDK out-of-band if needed.
 #### Login
@@ -41,16 +41,23 @@ POST /api/auth/login
 **Body:**
 ```json
 {
-  "idToken": "firebase_id_token_from_client_auth"
+  "idToken": "firebase_id_token_from_client_auth",
+  "phoneNumber": "+6591234567",
+  "name": "John Doe"
 }
 ```
+Notes:
+- phoneNumber and name are optional and used to enrich the Firestore user document on first login.
+- phoneNumber should be E.164 formatted (+65XXXXXXXX).
+
 **Response:**
 ```json
 {
   "success": true,
   "user": {
     "uid": "user_id",
-    "email": "user@example.com",
+    "email": "6591234567@phone.local",
+    "phoneNumber": "+6591234567",
     "name": "John Doe",
     "role": "user"
   }
@@ -257,7 +264,8 @@ Headers: Authorization: Bearer <token>
   "success": true,
   "profile": {
     "uid": "user_id",
-    "email": "user@example.com",
+    "email": "6591234567@phone.local",
+    "phoneNumber": "+6591234567",
     "name": "John Doe",
     "role": "user",
     "profilePicture": "url_to_image",
