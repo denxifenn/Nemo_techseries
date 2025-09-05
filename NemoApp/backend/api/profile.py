@@ -19,7 +19,6 @@ def get_profile(current_user):
         user = FirebaseService.ensure_user_doc(current_user)
         profile = {
             'uid': user.get('uid', current_user),
-            'email': user.get('email'),
             'phoneNumber': user.get('phoneNumber'),
             'name': user.get('name'),
             'role': user.get('role', 'user'),

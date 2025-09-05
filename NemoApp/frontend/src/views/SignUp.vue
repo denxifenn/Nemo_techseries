@@ -17,8 +17,7 @@
         <input v-model="displayName" type="text" placeholder="Your name" />
       </div>
       <div class="row">
-        <button @click="doFirebaseSignUp" :disabled="loading || !isPhoneValid || !password">Create Firebase Account</button>
-        <button @click="doBackendLogin" :disabled="loading">Backend Login (provision profile)</button>
+        <button @click="doFirebaseSignUp" :disabled="loading || !isPhoneValid || !password">Create Account</button>
         <button @click="goTester">Open API Tester</button>
       </div>
 
@@ -28,8 +27,7 @@
 
     <section class="info">
       <p>
-        After creating an account, click "Backend Login" to create your user profile in Firestore
-        through the backend <a href="../services/api.js">/api/auth/login</a>.
+        After creating an account, your profile is provisioned automatically.
       </p>
       <router-link to="/login">Already have an account? Log in</router-link>
     </section>
@@ -43,7 +41,7 @@ import { useToast } from 'primevue/usetoast';
 import { auth, createUserWithEmailAndPassword, getIdToken } from '../services/firebase';
 import { updateProfile } from 'firebase/auth';
 import api from '../services/api';
-import { formatSingaporePhone, phoneToEmail, emailToPhone } from '../utils/phoneUtils';
+import { formatSingaporePhone, phoneToEmail } from '../utils/phoneUtils';
 
 const router = useRouter();
 const toast = useToast();
@@ -79,10 +77,21 @@ async function doFirebaseSignUp() {
         console.warn('updateProfile failed:', e);
       }
     }
-    result.value = `Sign up success: ${formatted}`;
-    toast.add({ severity: 'success', summary: 'Sign up success', detail: formatted, life: 3000 });
+
+    // Immediately perform backend provisioning
+    const token = await getIdToken(true);
+    if (!token) throw new Error('No Firebase ID token after signup.');
+    const name = auth.currentUser?.displayName || (displayName.value || '').trim() || undefined;
+    const resp = await api.backendLoginWithIdToken(token, { phoneNumber: formatted, name });
+
+    const userLabel = resp.data?.user?.phoneNumber || resp.data?.user?.uid || 'unknown';
+    result.value = `Account created and provisioned: ${userLabel}`;
+    toast.add({ severity: 'success', summary: 'Account created', detail: userLabel, life: 3000 });
+
+    // Optional: navigate to main page
+    try { router.push('/discover'); } catch {}
   } catch (e) {
-    const msg = e?.message || String(e);
+    const msg = e?.response?.data?.error || e?.message || String(e);
     error.value = msg;
     toast.add({ severity: 'error', summary: 'Sign up failed', detail: msg, life: 4000 });
   } finally {
@@ -90,36 +99,6 @@ async function doFirebaseSignUp() {
   }
 }
 
-async function doBackendLogin() {
-  error.value = '';
-  result.value = '';
-  loading.value = true;
-  try {
-    const token = await getIdToken(true);
-    if (!token) throw new Error('No Firebase ID token. Sign in first.');
-    const currentEmail = auth.currentUser?.email || '';
-    let inferredPhone = emailToPhone(currentEmail);
-    if (!inferredPhone && phone.value) {
-      try {
-        inferredPhone = formatSingaporePhone(phone.value);
-      } catch {}
-    }
-    const name = auth.currentUser?.displayName || (displayName.value || '').trim() || undefined;
-    const resp = await api.backendLoginWithIdToken(token, {
-      phoneNumber: inferredPhone,
-      name,
-    });
-    const userLabel = resp.data?.user?.phoneNumber || resp.data?.user?.email || resp.data?.user?.uid || 'unknown';
-    result.value = `Backend login OK. User: ${userLabel}`;
-    toast.add({ severity: 'success', summary: 'Backend login success', detail: userLabel, life: 3000 });
-  } catch (e) {
-    const msg = e?.response?.data?.error || e?.message || String(e);
-    error.value = msg;
-    toast.add({ severity: 'error', summary: 'Backend login failed', detail: msg, life: 4000 });
-  } finally {
-    loading.value = false;
-  }
-}
 
 function goTester() {
   router.push('/api-tester');

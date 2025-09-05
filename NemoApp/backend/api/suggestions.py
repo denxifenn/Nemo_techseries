@@ -61,7 +61,7 @@ def list_suggestions(current_user):
                     s['user'] = {
                         'uid': uid,
                         'name': u.get('name'),
-                        'email': u.get('email')
+                        'phoneNumber': u.get('phoneNumber')
                     }
 
             out.append(s)

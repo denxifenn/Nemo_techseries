@@ -40,7 +40,6 @@ def login():
 
     return jsonify({'success': True, 'user': {
         'uid': user.get('uid') or uid,
-        'email': user.get('email'),
         'phoneNumber': user.get('phoneNumber'),
         'name': user.get('name'),
         'role': user.get('role', 'user')

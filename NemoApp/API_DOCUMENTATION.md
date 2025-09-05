@@ -56,7 +56,6 @@ Notes:
   "success": true,
   "user": {
     "uid": "user_id",
-    "email": "6591234567@phone.local",
     "phoneNumber": "+6591234567",
     "name": "John Doe",
     "role": "user"
@@ -264,7 +263,6 @@ Headers: Authorization: Bearer <token>
   "success": true,
   "profile": {
     "uid": "user_id",
-    "email": "6591234567@phone.local",
     "phoneNumber": "+6591234567",
     "name": "John Doe",
     "role": "user",
@@ -309,7 +307,7 @@ Headers: Authorization: Bearer <token>
 **Body:**
 ```json
 {
-  "email": "friend@example.com"
+  "phoneNumber": "+6591234567"
 }
 ```
 **Response:**
@@ -353,7 +351,7 @@ Headers: Authorization: Bearer <token>
     {
       "id": "friend_uid",
       "name": "Friend Name",
-      "email": "friend@example.com",
+      "phoneNumber": "+6591234567",
       "profilePicture": "image_url"
     }
   ],
@@ -483,7 +481,7 @@ Headers: Authorization: Bearer <token>
       "user": {
         "uid": "user_id",
         "name": "John Doe",
-        "email": "john@example.com"
+        "phoneNumber": "+6591234567"
       },
       "text": "Any feedback or suggestions for future events...",
       "createdAt": "2025-03-01T13:00:00Z"
