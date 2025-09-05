@@ -181,10 +181,13 @@ const api = {
 
   // Auth helpers specific to Nemo backend
   async backendLoginWithIdToken(idToken) {
+    // Send token BOTH in body and as Authorization header to maximize compatibility
+    // Backend [auth.login()](NemoApp/backend/api/auth.py:12) now accepts either.
     return request('/api/auth/login', {
       method: 'POST',
+      headers: { Authorization: `Bearer ${String(idToken || '').trim()}` },
       body: { idToken },
-      // No need to attach auth header; backend expects idToken field
+      // We explicitly set header above, so keep skipAuth true to avoid double-attaching
       skipAuth: true,
     });
   },
