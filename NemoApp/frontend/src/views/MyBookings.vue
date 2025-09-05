@@ -1,27 +1,26 @@
 <template>
   <ProfileNavBar />
 
-  <div class="my-bookings-page">
+  <div class="friends-page">
     <!-- Page Header -->
     <div class="page-header">
       <h1 class="page-title">MY BOOKINGS</h1>
-      <!-- <p class="page-subtitle"></p> -->
     </div>
 
-    <!-- Friends Grid -->
-    <div class="friends-grid">
+    <!-- Bookings Grid -->
+    <div class="bookings-grid">
       <Card 
-        v-for="event in bookings" 
-        :key="event.id"
-        class="friend-card"
+        v-for="booking in bookings" 
+        :key="bookings.id"
+        class="booking-card"
       >
         <template #content>
-          <div class="friend-content">
+          <div class="booking-content">
             <!-- Profile Image -->
-            <div class="friend-avatar">
+            <div class="booking-avatar">
               <Avatar 
-                :image="friend.avatar" 
-                :label="friend.initials"
+                :image="booking.avatar" 
+                :label="booking.initials"
                 size="large"
                 shape="circle"
                 class="avatar"
@@ -30,34 +29,26 @@
             </div>
 
             <!-- Friend Info -->
-            <div class="event-info">
-              <h3 class="event-name">{{ event.name }}</h3>
-              <p class="event-role">{{ event.role }}</p>
-              <p class="friend-company">{{ event.company }}</p>
-              <div class="friend-stats">
+            <div class="booking-info">
+              <h3 class="booking-name">{{ booking.name }}</h3>
+              <p class="booking-role">{{ friend.role }}</p>
+              <p class="booking-company">{{ booking.company }}</p>
+              <div class="booking-stats">
                 <span class="stat">
                   <i class="pi pi-users"></i>
-                  {{ friend.mutualFriends }} mutual
+                  {{ booking.mutualbookings }} mutual
                 </span>
                
               </div>
             </div>
 
             <!-- Action Buttons -->
-            <div class="friend-actions">
-              <Button
-                label="Message"
-                icon="pi pi-comments"
-                severity="secondary"
-                size="small"
-                @click="sendMessage(friend)"
-                class="action-btn"
-              />
+            <div class="booking-actions">
               <Button
                 label="More Info"
                 icon="pi pi-info-circle"
                 size="small"
-                @click="viewProfile(friend)"
+                @click="viewProfile(booking))"
                 class="action-btn"
               />
             </div>
@@ -69,40 +60,40 @@
     <!-- Profile Dialog -->
     <Dialog 
       v-model:visible="showProfileDialog"
-      :header="selectedFriend?.name"
+      :header="selectedBooking?.name"
       modal
       class="profile-dialog"
       :style="{ width: '600px' }"
     >
-      <div v-if="selectedFriend" class="profile-details">
+      <div v-if="selectedBooking" class="profile-details">
         <div class="profile-header">
           <Avatar 
-            :image="selectedFriend.avatar" 
-            :label="selectedFriend.initials"
+            :image="selectedBooking.avatar" 
+            :label="selectedBooking.initials"
             size="xlarge"
             shape="circle"
           />
           <div class="profile-basic-info">
-            <h2>{{ selectedFriend.name }}</h2>
-            <p class="role">{{ selectedFriend.role }}</p>
-            <p class="company">{{ selectedFriend.company }}</p>
+            <h2>{{ selectedBooking.name }}</h2>
+            <p class="role">{{ selectedBooking.role }}</p>
+            <p class="company">{{ selectedBooking.company }}</p>
           
           </div>
         </div>
 
         <Divider />
 
-        <div class="profile-sections">
+        <!-- <div class="profile-sections">
           <div class="section">
             <h4><i class="pi pi-user"></i> About</h4>
-            <p>{{ selectedFriend.bio }}</p>
+            <p>{{ selectedBooking.bio }}</p>
           </div>
 
         <div class="section">
             <h4><i class="pi pi-heart"></i> Interests</h4>
             <div class="interests">
               <Tag 
-                v-for="interest in selectedFriend.interests"
+                v-for="interest in selectedFriends.interests"
                 :key="interest"
                 :value="interest"
                 severity="info"
@@ -115,22 +106,17 @@
             <h4><i class="pi pi-users"></i> Network</h4>
             <p>{{ selectedFriend.mutualFriends }} mutual friends</p>
             <p>{{ selectedFriend.totalConnections }} total connections</p>
-          </div>
-        </div>
+          </div> -->
+        <!-- </div> -->
       </div>
 
       <template #footer>
         <div class="dialog-actions">
-          <Button
-            label="Send Message"
-            icon="pi pi-comments"
-            @click="sendMessage(selectedFriend)"
-            class="close-btn"
-          />
+          
           <Button
             label="Close"
             severity="secondary"
-            @click="closeProfile"
+            @click="closeBooking"
             class="close-btn"
           />
         </div>
@@ -169,7 +155,7 @@ export default {
   setup() {
     const toast = useToast()
     const showProfileDialog = ref(false)
-    const selectedFriend = ref(null)
+    const selectedBooking = ref(null)
 
     // Sample friends data - Migrant workers in Singapore
     const friends = ref([
@@ -255,34 +241,23 @@ export default {
       }
     ])
 
-    const viewProfile = (friend) => {
-      selectedFriend.value = friend
+    const viewProfile = (booking) => {
+      selectedBooking.value = booking
       showProfileDialog.value = true
     }
 
     const closeProfile = () => {
       showProfileDialog.value = false
-      selectedFriend.value = null
+      selectedBooking.value = null
     }
 
-    const sendMessage = (friend) => {
-      toast.add({
-        severity: 'info',
-        summary: 'Message',
-        detail: `Opening chat with ${friend.name}`,
-        life: 3000
-      })
-      // Here you would typically navigate to a messaging interface
-      // or open a chat component
-    }
 
     return {
-      friends,
+      bookings,
       showProfileDialog,
-      selectedFriend,
+      selectedBooking,
       viewProfile,
       closeProfile,
-      sendMessage,
       toast
     }
   }
@@ -290,10 +265,11 @@ export default {
 </script>
 
 <style scoped>
-.friends-page {
+.bookings-page {
   padding: 2rem;
   max-width: 1200px;
   margin: 0 auto;
+  margin-bottom:9000px;
 }
 
 .page-header {
@@ -312,31 +288,30 @@ export default {
   font-size: 1.1rem;
 }
 
-.friends-grid {
+.bookings-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 5rem;
 }
 
-.friend-card {
+.booking-card {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   background-color:  #FFC67B;
-  border-radius: 12px;
+  border-radius: 20px;
 }
 
-.friend-card:hover {
+.booking-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 20px rgba(230, 93, 2, 0.973);
 }
 
-.friend-content {
+.booking-content {
   padding: 1rem;
 }
 
-.friend-avatar {
-  position: relative;
+.booking-avatar {
+  position: sticky;
   text-align: center;
-  margin-bottom: 1rem;
 }
 
 .avatar {
@@ -354,31 +329,31 @@ export default {
 }
 
 
-.friend-info {
+.booking-info {
   text-align: center;
   margin-bottom: 1.5rem;
   
 }
 
-.friend-name {
+.booking-name {
   font-size: 1.25rem;
   font-weight: 600;
   margin-bottom: 0.25rem;
   color: var(--text-color);
 }
 
-.friend-role {
+.booking-role {
   color: var(--primary-color);
   font-weight: 500;
   margin-bottom: 0.25rem;
 }
 
-.friend-company {
+.booking-company {
   color: var(--text-color-secondary);
   margin-bottom: 1rem;
 }
 
-.friend-stats {
+.booking-stats {
   display: flex;
   justify-content: center;
   gap: 1rem;
@@ -392,7 +367,7 @@ export default {
   gap: 0.25rem;
 }
 
-.friend-actions {
+.booking-actions {
   display: flex;
   gap: 0.5rem;
   justify-content: center;
@@ -480,11 +455,11 @@ export default {
 }
 
 @media (max-width: 768px) {
-  .friends-page {
+  .bookings-page {
     padding: 1rem;
   }
   
-  .friends-grid {
+  .bookings-grid {
     grid-template-columns: 1fr;
   }
   
