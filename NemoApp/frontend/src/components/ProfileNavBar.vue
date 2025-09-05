@@ -9,7 +9,7 @@
         <Button icon="pi pi-users" label="Friends" class="nav-btn" text />
       </router-link>
       <router-link to="/mybookings" class="nav-btn">
-        <Button icon="pi pi-calendar" label="Bookings" class="nav-btn" text />
+        <Button icon="pi pi-calendar" label="My Bookings" class="nav-btn" text />
       </router-link>
     </nav>
 
@@ -32,6 +32,7 @@ import Button from 'primevue/button';
 
 <style scoped>
 .sidebar {
+  /* position:fixed; */
   width: 250px;
   height: 90vh;
   position: fixed; /* keeps it from affecting profile content flow */
