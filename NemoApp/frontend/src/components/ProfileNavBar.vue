@@ -1,71 +1,106 @@
 <template>
   <aside class="sidebar">
-    <!-- Top Links -->
-    <nav class="nav-top">
-      <router-link to="/profile" class="nav-btn">
-        <Button icon="pi pi-user" label="About Me" class="nav-btn" text />
+    <nav class="nav-container">
+      <router-link to="/profile" class="nav-link">
+        <i class="pi pi-user"></i>
+        <span>About Me</span>
       </router-link>
-      <router-link to="/friends" class="nav-btn">
-        <Button icon="pi pi-users" label="Friends" class="nav-btn" text />
+      <router-link to="/friends" class="nav-link">
+        <i class="pi pi-users"></i>
+        <span>Friends</span>
       </router-link>
-      <router-link to="/mybookings" class="nav-btn">
-        <Button icon="pi pi-calendar" label="My Bookings" class="nav-btn" text />
+      <router-link to="/mybookings" class="nav-link">
+        <i class="pi pi-calendar"></i>
+        <span>My Bookings</span>
+      </router-link>
+      <router-link to="/logout" class="nav-link">
+        <i class="pi pi-sign-out"></i>
+        <span>Sign Out</span>
       </router-link>
     </nav>
-
-    <!-- Bottom Links -->
-    <div class="nav-bottom">
-      <router-link to="/logout" class="nav-btn">
-        <Button icon="pi pi-sign-out" label="Sign Out" class="nav-btn" text />
-      </router-link>
-      <router-link to="/delete-account" class="nav-btn">
-        <Button icon="pi pi-trash" label="Delete Account" class="nav-btn" severity="danger" text/>
-      </router-link>
-    </div>
   </aside>
 </template>
 
 <script setup>
-import Button from 'primevue/button';
+// Simplified navigation component
 
 </script>
 
 <style scoped>
 .sidebar {
-  /* position:fixed; */
   width: 250px;
-  height: 90vh;
-  left: 0;
-  top: 5;
-  background-color: #ec6212;
+  height: 100vh;
+  background: #ec6212;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
   position: sticky;
-
+  top: 0;
+  padding: 1rem 0;
 }
 
-.nav-top {
-  margin-top: 12rem;
+.nav-container {
   display: flex;
   flex-direction: column;
-  gap: 6rem;
+  justify-content: space-evenly;
+  flex: 1;
+  padding: 1rem;
 }
 
-.nav-bottom {
+.nav-link {
   display: flex;
-  flex-direction: column;
-  margin-top: auto;
-  gap:2.5rem;
-  margin-bottom: 6rem;
-}
-
-.nav-btn .p-button {
-  justify-content: flex-start; /* icon + text aligned left */
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
   color: white;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+  font-size: 0.9rem;
+  font-weight: 500;
 }
-/* 
-.nav-btn .p-button:hover {
-  background-color: #e35513; 
-} */
+
+.nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.nav-link i {
+  font-size: 1.1rem;
+  width: 20px;
+  text-align: center;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100%;
+    height: 100vh;
+    position: relative;
+    padding: 1rem;
+  }
+
+  .nav-container {
+    flex: 1;
+    padding: 0.5rem;
+  }
+
+  .nav-link {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .sidebar {
+    padding: 0.5rem;
+  }
+
+  .nav-container {
+    padding: 0.25rem;
+  }
+
+  .nav-link {
+    padding: 0.5rem 0.6rem;
+    font-size: 0.8rem;
+  }
+}
 </style>
