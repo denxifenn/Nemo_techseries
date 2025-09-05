@@ -170,8 +170,9 @@ Headers: Authorization: Bearer <token>
 }
 ```
 Notes:
-- The initiator (current user) is automatically included for UID-based bookings.
-- Capacity is enforced atomically across both user UIDs and guest names.
+- Only the initiating user's UID is counted; any provided groupMembers UIDs are ignored by the backend (initiator-only UID policy).
+- Use groupMemberNames to include additional attendees without accounts.
+- Capacity is enforced atomically across the initiator seat (if newly added) and guest names.
 - Guest names are stored on the event as guestEntries and on the booking as guestNames.
 
 **Response:**
@@ -189,6 +190,17 @@ Notes:
 GET /api/bookings/my
 Headers: Authorization: Bearer <token>
 ```
+Optional query:
+- filter=current|past|all (default current)
+  - current: upcoming events (start >= now) and not cancelled
+  - past: events already started (start < now) OR cancelled bookings
+  - all: no filtering
+
+Examples:
+- GET /api/bookings/my?filter=current
+- GET /api/bookings/my?filter=past
+- GET /api/bookings/my?filter=all
+
 **Response:**
 ```json
 {
@@ -208,6 +220,25 @@ Headers: Authorization: Bearer <token>
     }
   ],
   "count": 1
+}
+```
+
+#### Cancel My Booking
+```
+DELETE /api/bookings/{booking_id}
+Headers: Authorization: Bearer <token>
+```
+Rules:
+- Only the booking owner (userId) can cancel
+- Booking must be in status=confirmed
+- Cannot cancel within 24 hours before the event start time
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Booking cancelled",
+  "seatsFreed": 2
 }
 ```
 
@@ -364,6 +395,44 @@ Headers: Authorization: Bearer <token>
   "success": true,
   "eventId": "new_event_id",
   "message": "Event created successfully"
+}
+```
+
+Validation:
+- Event start must be in the future (creation is rejected if date/time is in the past)
+
+#### Update Event
+```
+PUT /api/admin/events/{event_id}
+Headers: Authorization: Bearer <token>
+```
+Body (any subset):
+```json
+{
+  "title": "New Title",
+  "description": "Updated description",
+  "category": "sports|workshop|social|cultural",
+  "location": "New Location",
+  "date": "YYYY-MM-DD",
+  "time": "HH:MM",
+  "maxParticipants": 50,
+  "imageUrl": "optional_image_url"
+}
+```
+Rules:
+- category, if provided, must be one of: sports, workshop, social, cultural
+- date/time, if provided, must not result in a past scheduled time
+- maxParticipants, if provided, must be >= currentParticipants
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Event updated",
+  "updated": {
+    "title": "New Title",
+    "time": "16:00"
+  }
 }
 ```
 

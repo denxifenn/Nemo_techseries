@@ -72,8 +72,60 @@
         <button @click="createGroupBooking">Create Group Booking</button>
       </div>
       <div class="row">
+        <label>Filter</label>
+        <select v-model="bookings.filterVal">
+          <option value="current">current</option>
+          <option value="past">past</option>
+          <option value="all">all</option>
+        </select>
         <button @click="listMyBookings">List My Bookings</button>
       </div>
+      <div class="row">
+        <label>Cancel Booking ID</label>
+        <input v-model="bookings.cancelId" placeholder="booking_id" />
+        <button @click="cancelBooking">Cancel Booking</button>
+      </div>
+      <div class="row">
+        <label>Cancel by Event ID</label>
+        <input v-model="bookings.cancelEventId" placeholder="event_id" />
+        <button @click="cancelBookingByEvent">Cancel My Booking for Event</button>
+      </div>
+      <!-- Render current list with per-row cancel buttons -->
+      <div v-if="bookingsList.length" class="list">
+        <table class="bookings-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Event</th>
+              <th>Date</th>
+              <th>Time</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="b in bookingsList" :key="b.id">
+              <td><code>{{ b.id }}</code></td>
+              <td>{{ b.bookingType }}</td>
+              <td>{{ b.status }}</td>
+              <td>{{ b.event?.title || b.eventId }}</td>
+              <td>{{ b.event?.date || '-' }}</td>
+              <td>{{ b.event?.time || '-' }}</td>
+              <td>
+                <button
+                  :disabled="(b.status || '').toLowerCase() === 'cancelled'"
+                  @click="cancelBooking(b.id)"
+                  title="Cancel this booking"
+                >
+                  Cancel
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div v-else class="hint">No bookings loaded. Click "List My Bookings", then cancel using the row button.</div>
     </section>
 
     <section class="panel profile">
@@ -139,6 +191,23 @@
         <input v-model="adminForm.imageUrl" placeholder="Image URL (optional)" />
         <button @click="adminCreateEvent">Create Event</button>
       </div>
+
+      <h3>Update Event</h3>
+      <div class="row">
+        <label>Event ID</label>
+        <input v-model="adminUpdate.eventId" placeholder="event_id to update" />
+      </div>
+      <div class="row grid">
+        <input v-model="adminUpdate.title" placeholder="Title (optional)" />
+        <input v-model="adminUpdate.description" placeholder="Description (optional)" />
+        <input v-model="adminUpdate.category" placeholder="Category (sports|workshop|social|cultural)" />
+        <input v-model="adminUpdate.location" placeholder="Location (optional)" />
+        <input v-model="adminUpdate.date" placeholder="YYYY-MM-DD (optional)" />
+        <input v-model="adminUpdate.time" placeholder="HH:MM (24h, optional)" />
+        <input v-model.number="adminUpdate.maxParticipants" type="number" min="1" placeholder="Max Participants (optional)" />
+        <input v-model="adminUpdate.imageUrl" placeholder="Image URL (optional)" />
+        <button @click="adminUpdateEvent">Update Event</button>
+      </div>
     </section>
 
     <section class="panel result">
@@ -197,6 +266,7 @@ function pretty(obj) {
 
 const lastResponse = ref(null);
 const lastError = ref('');
+const bookingsList = ref([]);
 
 // UI actions - config
 function applyBaseUrl() {
@@ -355,6 +425,9 @@ const bookings = reactive({
   eventId: '',
   groupMembers: '',
   guestNames: '',
+  filterVal: 'current',
+  cancelId: '',
+  cancelEventId: '',
 });
 
 async function createIndividualBooking() {
@@ -390,7 +463,7 @@ async function createGroupBooking() {
     const groupMemberNames = parseCsv(bookings.guestNames);
     const resp = await api.post('/api/bookings/group', {
       eventId: bookings.eventId,
-      groupMembers,
+      groupMembers,      // backend ignores UIDs (initiator only), but we pass through for transparency
       groupMemberNames,
     });
     lastResponse.value = resp.data || resp;
@@ -407,14 +480,53 @@ async function listMyBookings() {
   lastError.value = '';
   lastResponse.value = null;
   try {
-    const resp = await api.get('/api/bookings/my');
+    const resp = await api.get('/api/bookings/my', { filter: bookings.filterVal || 'current' });
     lastResponse.value = resp.data || resp;
-    const count = resp?.data?.count ?? (resp?.data?.bookings?.length ?? 0);
+    bookingsList.value = resp?.data?.bookings || [];
+    const count = (resp?.data?.count ?? bookingsList.value.length) ?? 0;
     toast.add({ severity: 'success', summary: 'My bookings', detail: `Count: ${count}`, life: 2500 });
   } catch (e) {
+    bookingsList.value = [];
     const msg = e?.response?.data?.error || e?.message || String(e);
     lastError.value = msg;
     toast.add({ severity: 'error', summary: 'List My Bookings failed', detail: msg, life: 4000 });
+  }
+}
+
+async function cancelBooking(id) {
+  lastError.value = '';
+  lastResponse.value = null;
+  try {
+    const bookingId = id || bookings.cancelId;
+    if (!bookingId) throw new Error('bookingId required');
+    const resp = await api.del(`/api/bookings/${bookingId}`);
+    lastResponse.value = resp.data || resp;
+    const freed = resp?.data?.seatsFreed ?? 0;
+    toast.add({ severity: 'success', summary: 'Booking cancelled', detail: `Seats freed: ${freed}`, life: 3000 });
+    // Refresh list after cancellation
+    try { await listMyBookings(); } catch {}
+  } catch (e) {
+    const msg = e?.response?.data?.error || e?.message || String(e);
+    lastError.value = msg;
+    toast.add({ severity: 'error', summary: 'Cancel Booking failed', detail: msg, life: 4000 });
+  }
+}
+
+async function cancelBookingByEvent() {
+  lastError.value = '';
+  lastResponse.value = null;
+  try {
+    if (!bookings.cancelEventId) throw new Error('eventId required');
+    const resp = await api.del(`/api/bookings/by-event/${bookings.cancelEventId}`);
+    lastResponse.value = resp.data || resp;
+    const freed = resp?.data?.seatsFreed ?? 0;
+    toast.add({ severity: 'success', summary: 'Booking cancelled (by event)', detail: `Seats freed: ${freed}`, life: 3000 });
+    // Refresh list after cancellation
+    try { await listMyBookings(); } catch {}
+  } catch (e) {
+    const msg = e?.response?.data?.error || e?.message || String(e);
+    lastError.value = msg;
+    toast.add({ severity: 'error', summary: 'Cancel by Event failed', detail: msg, life: 4000 });
   }
 }
 
@@ -596,6 +708,44 @@ async function adminCreateEvent() {
     const msg = e?.response?.data?.error || e?.message || String(e);
     lastError.value = msg;
     toast.add({ severity: 'error', summary: 'Create Event failed', detail: msg, life: 4000 });
+  }
+}
+
+const adminUpdate = reactive({
+  eventId: '',
+  title: '',
+  description: '',
+  category: '',
+  location: '',
+  date: '',
+  time: '',
+  maxParticipants: null,
+  imageUrl: '',
+});
+
+async function adminUpdateEvent() {
+  lastError.value = '';
+  lastResponse.value = null;
+  try {
+    if (!adminUpdate.eventId) throw new Error('eventId required');
+    const body = {};
+    if (adminUpdate.title) body.title = adminUpdate.title;
+    if (adminUpdate.description) body.description = adminUpdate.description;
+    if (adminUpdate.category) body.category = adminUpdate.category;
+    if (adminUpdate.location) body.location = adminUpdate.location;
+    if (adminUpdate.date) body.date = adminUpdate.date;
+    if (adminUpdate.time) body.time = adminUpdate.time;
+    if (adminUpdate.imageUrl) body.imageUrl = adminUpdate.imageUrl;
+    if (adminUpdate.maxParticipants != null && adminUpdate.maxParticipants !== '') {
+      body.maxParticipants = Number(adminUpdate.maxParticipants);
+    }
+    const resp = await api.put(`/api/admin/events/${adminUpdate.eventId}`, body);
+    lastResponse.value = resp.data || resp;
+    toast.add({ severity: 'success', summary: 'Event updated', life: 3000 });
+  } catch (e) {
+    const msg = e?.response?.data?.error || e?.message || String(e);
+    lastError.value = msg;
+    toast.add({ severity: 'error', summary: 'Update Event failed', detail: msg, life: 4000 });
   }
 }
 </script>

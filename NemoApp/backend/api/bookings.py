@@ -2,8 +2,16 @@ from flask import Blueprint, jsonify, request
 from utils.decorators import require_auth
 from services.firebase_service import db
 from firebase_admin import firestore as admin_fs
+from datetime import datetime, timedelta
 
 bookings_bp = Blueprint('bookings', __name__)
+
+def _combine_date_time(date_str: str, time_str: str):
+    """Combine 'YYYY-MM-DD' and 'HH:MM' to a naive UTC datetime."""
+    try:
+        return datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+    except Exception:
+        return None
 
 def _get_event_in_txn(transaction, event_id):
     event_ref = db.collection('events').document(event_id)
@@ -226,16 +234,26 @@ def create_group_booking(current_user):
 def list_my_bookings(current_user):
     """
     Get current user's bookings. Also returns a minimal event summary.
+
+    Query:
+      - filter: "current" | "past" | "all" (default "current")
+        * current: upcoming events (start >= now) and not cancelled
+        * past: events already started (start < now) OR cancelled bookings
+        * all: no filtering
     """
     try:
+        filter_val = (request.args.get('filter') or 'current').strip().lower()
+        now = datetime.utcnow()
+
         my = []
         q = db.collection('bookings').where('userId', '==', current_user)
         for doc in q.stream():
             booking = doc.to_dict()
             booking['id'] = doc.id
 
-            # Attach event summary if available
+            # Attach event summary if available and compute isPast
             ev_id = booking.get('eventId')
+            is_past = False
             if ev_id:
                 ev_snap = db.collection('events').document(ev_id).get()
                 if ev_snap.exists:
@@ -248,9 +266,206 @@ def list_my_bookings(current_user):
                         'location': ev.get('location'),
                         'category': ev.get('category')
                     }
+                    event_dt = _combine_date_time(ev.get('date') or '', ev.get('time') or '')
+                    if event_dt:
+                        is_past = event_dt < now
 
-            my.append(booking)
+            status = (booking.get('status') or '').lower()
+            include = True
+            if filter_val == 'current':
+                include = (status != 'cancelled') and (not is_past)
+            elif filter_val == 'past':
+                include = is_past or (status == 'cancelled')
+            else:
+                include = True
+
+            if include:
+                my.append(booking)
 
         return jsonify({'success': True, 'bookings': my, 'count': len(my)}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bookings_bp.route('/api/bookings/<booking_id>', methods=['DELETE'])
+@require_auth
+def cancel_booking(current_user, booking_id: str):
+    """
+    Cancel the caller's booking (individual or group).
+    Rules:
+      - Only booking owner (userId) can cancel
+      - Booking must be in 'confirmed' status
+      - Cannot cancel within 24 hours before event start
+    Effects:
+      - Update booking.status to 'cancelled' (with cancelledAt)
+      - Decrement event.currentParticipants accordingly
+      - Remove user from event.participants if present
+      - Remove guestEntries added by this booking's initiator (for listed names)
+    """
+    try:
+        # Load booking
+        b_ref = db.collection('bookings').document(booking_id)
+        b_snap = b_ref.get()
+        if not b_snap.exists:
+            return jsonify({'success': False, 'error': 'Booking not found'}), 404
+        booking = b_snap.to_dict() or {}
+
+        if booking.get('userId') != current_user:
+            return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+        if (booking.get('status') or '').lower() != 'confirmed':
+            return jsonify({'success': False, 'error': 'Only confirmed bookings can be cancelled'}), 400
+
+        ev_id = booking.get('eventId')
+        if not ev_id:
+            return jsonify({'success': False, 'error': 'Invalid booking: missing eventId'}), 400
+
+        e_ref = db.collection('events').document(ev_id)
+        e_snap = e_ref.get()
+        if not e_snap.exists:
+            return jsonify({'success': False, 'error': 'Event not found'}), 404
+
+        event = e_snap.to_dict() or {}
+        event_dt = _combine_date_time(event.get('date') or '', event.get('time') or '')
+        if not event_dt:
+            return jsonify({'success': False, 'error': 'Invalid event date/time'}), 400
+
+        if event_dt - datetime.utcnow() < timedelta(days=1):
+            return jsonify({'success': False, 'error': 'Cannot cancel within 24 hours of event start'}), 400
+
+        # Transaction to update booking and event atomically
+        transaction = db.transaction()
+
+        @admin_fs.transactional
+        def _txn_cancel(txn):
+            e_snap_txn = e_ref.get(transaction=txn)
+            if not e_snap_txn.exists:
+                raise ValueError('Event not found')
+            e_cur = e_snap_txn.to_dict() or {}
+            participants = set(e_cur.get('participants', []))
+
+            dec = 0
+            # Remove user seat if present
+            if current_user in participants:
+                dec += 1
+
+            # If group booking: remove guest entries by initiator and count them
+            guest_names = booking.get('guestNames') or []
+            if isinstance(guest_names, list) and guest_names:
+                # ArrayRemove payload must match elements exactly
+                remove_entries = [{'name': n, 'addedBy': current_user} for n in guest_names]
+                txn.update(e_ref, {
+                    'guestEntries': admin_fs.ArrayRemove(remove_entries)
+                })
+                dec += len(guest_names)
+
+            # Build event update
+            ev_update = {}
+            if dec > 0:
+                ev_update['currentParticipants'] = admin_fs.Increment(-dec)
+            if current_user in participants:
+                ev_update['participants'] = admin_fs.ArrayRemove([current_user])
+            if ev_update:
+                txn.update(e_ref, ev_update)
+
+            # Mark booking cancelled
+            txn.update(b_ref, {'status': 'cancelled', 'cancelledAt': admin_fs.SERVER_TIMESTAMP})
+
+            return dec
+
+        freed = _txn_cancel(transaction)
+        return jsonify({'success': True, 'message': 'Booking cancelled', 'seatsFreed': freed}), 200
+
+    except ValueError as ve:
+        return jsonify({'success': False, 'error': str(ve)}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@bookings_bp.route('/api/bookings/by-event/<event_id>', methods=['DELETE'])
+@require_auth
+def cancel_booking_by_event(current_user, event_id: str):
+    """
+    Convenience endpoint to cancel the caller's booking for a given event_id.
+    Rules:
+      - Only booking owner (userId) can cancel
+      - Booking must be in 'confirmed' status
+      - Cannot cancel within 24 hours before event start
+    Effects:
+      - Update booking.status to 'cancelled' (with cancelledAt)
+      - Decrement event.currentParticipants accordingly
+      - Remove user from event.participants if present
+      - Remove guestEntries added by this booking's initiator (for listed names)
+    """
+    try:
+        # Find the user's confirmed booking for this event
+        matches = list(
+            db.collection('bookings')
+              .where('userId', '==', current_user)
+              .where('eventId', '==', event_id)
+              .where('status', '==', 'confirmed')
+              .limit(1)
+              .stream()
+        )
+        if not matches:
+            return jsonify({'success': False, 'error': 'Booking not found'}), 404
+
+        b_snap = matches[0]
+        b_ref = db.collection('bookings').document(b_snap.id)
+        booking = b_snap.to_dict() or {}
+
+        # Load event
+        e_ref = db.collection('events').document(event_id)
+        e_snap = e_ref.get()
+        if not e_snap.exists:
+            return jsonify({'success': False, 'error': 'Event not found'}), 404
+
+        event = e_snap.to_dict() or {}
+        event_dt = _combine_date_time(event.get('date') or '', event.get('time') or '')
+        if not event_dt:
+            return jsonify({'success': False, 'error': 'Invalid event date/time'}), 400
+        if event_dt - datetime.utcnow() < timedelta(days=1):
+            return jsonify({'success': False, 'error': 'Cannot cancel within 24 hours of event start'}), 400
+
+        # Transaction to update booking and event atomically
+        transaction = db.transaction()
+
+        @admin_fs.transactional
+        def _txn_cancel(txn):
+            e_snap_txn = e_ref.get(transaction=txn)
+            if not e_snap_txn.exists:
+                raise ValueError('Event not found')
+            e_cur = e_snap_txn.to_dict() or {}
+            participants = set(e_cur.get('participants', []))
+
+            dec = 0
+            # Remove user seat if present
+            if current_user in participants:
+                dec += 1
+
+            # If group booking: remove guest entries by initiator and count them
+            guest_names = booking.get('guestNames') or []
+            if isinstance(guest_names, list) and guest_names:
+                # ArrayRemove payload must match elements exactly
+                remove_entries = [{'name': n, 'addedBy': current_user} for n in guest_names]
+                txn.update(e_ref, {'guestEntries': admin_fs.ArrayRemove(remove_entries)})
+                dec += len(guest_names)
+
+            # Build event update
+            ev_update = {}
+            if dec > 0:
+                ev_update['currentParticipants'] = admin_fs.Increment(-dec)
+            if current_user in participants:
+                ev_update['participants'] = admin_fs.ArrayRemove([current_user])
+            if ev_update:
+                txn.update(e_ref, ev_update)
+
+            # Mark booking cancelled
+            txn.update(b_ref, {'status': 'cancelled', 'cancelledAt': admin_fs.SERVER_TIMESTAMP})
+            return dec
+
+        freed = _txn_cancel(transaction)
+        return jsonify({'success': True, 'message': 'Booking cancelled', 'seatsFreed': freed, 'bookingId': b_snap.id}), 200
+
+    except ValueError as ve:
+        return jsonify({'success': False, 'error': str(ve)}), 400
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
