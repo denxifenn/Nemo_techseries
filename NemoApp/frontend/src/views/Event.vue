@@ -157,6 +157,7 @@
 
 <script>
 import Button from 'primevue/button';
+import api from '../services/api';
 
 export default {
   name: 'EventDetail',
@@ -191,16 +192,14 @@ export default {
     async handleBooking() {
       this.isBooking = true;
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
+        if (!this.event?.id) throw new Error('Missing event id');
+        const resp = await api.post('/api/bookings/individual', { eventId: String(this.event.id) });
         this.$emit('book-event', this.event);
-
-        // Show success message (you can replace this with a toast notification)
         alert('Successfully registered for the event!');
       } catch (error) {
         console.error('Booking failed:', error);
-        alert('Registration failed. Please try again.');
+        const msg = error?.response?.data?.error || error?.message || 'Registration failed. Please try again.';
+        alert(msg);
       } finally {
         this.isBooking = false;
       }
@@ -209,157 +208,32 @@ export default {
     async fetchEventData(eventId) {
       this.loading = true;
       this.error = null;
+      const placeholderImage = '/src/assets/workers_background.jpg';
 
       try {
-        // Mock data - in a real app, this would be an API call
-        const mockEvents = [
-          {
-            id: 1,
-            title: 'Basketball Tournament',
-            date: 'Oct 15, 2024',
-            location: 'Sports Center',
-            description: 'Annual basketball tournament for all skill levels.',
-            format: 'indoor',
-            type: 'sports',
-            region: 'North',
-            image: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2340&q=80'
-          },
-          {
-            id: 2,
-            title: 'Art Exhibition',
-            date: 'Oct 20, 2024',
-            location: 'Gallery Downtown',
-            description: 'Unique art exhibition featuring local artists.',
-            format: 'indoor',
-            type: 'arts',
-            region: 'South',
-            image: 'https://via.placeholder.com/300x200'
-          },
-          {
-            id: 3,
-            title: 'Virtual Cooking Class',
-            date: 'Oct 18, 2024',
-            location: 'Online',
-            description: 'Learn to cook traditional dishes from home.',
-            format: 'online',
-            type: 'workshop',
-            region: 'North',
-            image: 'https://via.placeholder.com/300x200'
-          },
-          {
-            id: 4,
-            title: 'Outdoor Yoga',
-            date: 'Oct 22, 2024',
-            location: 'Central Park',
-            description: 'Morning yoga session in the park.',
-            format: 'outdoor',
-            type: 'sports',
-            region: 'Central',
-            image: 'https://via.placeholder.com/300x200'
-          },
-          {
-            id: 5,
-            title: 'Music Festival',
-            date: 'Oct 25, 2024',
-            location: 'City Park',
-            description: 'Two-day music festival featuring various artists.',
-            format: 'outdoor',
-            type: 'music',
-            region: 'West',
-            image: 'https://via.placeholder.com/300x200'
-          },
-          {
-            id: 6,
-            title: 'Tech Webinar',
-            date: 'Oct 30, 2024',
-            location: 'Online',
-            description: 'Learn about the latest technology trends.',
-            format: 'online',
-            type: 'workshop',
-            region: 'East',
-            image: 'https://via.placeholder.com/300x200'
-          },
-          {
-            id: 7,
-            title: 'Jazz Night Live',
-            date: 'Nov 5, 2024',
-            location: 'Blue Note Jazz Club',
-            description: 'An evening of smooth jazz with local and international artists.',
-            format: 'indoor',
-            type: 'music',
-            region: 'Central',
-            image: 'https://via.placeholder.com/300x200'
-          },
-          {
-            id: 8,
-            title: 'Modern Dance Performance',
-            date: 'Nov 8, 2024',
-            location: 'City Theater',
-            description: 'Contemporary dance showcase featuring innovative choreography.',
-            format: 'indoor',
-            type: 'performance',
-            region: 'West',
-            image: 'https://via.placeholder.com/300x200'
-          },
-          {
-            id: 9,
-            title: 'Digital Photography Workshop',
-            date: 'Nov 12, 2024',
-            location: 'Community Center',
-            description: 'Hands-on workshop covering composition, lighting, and editing techniques.',
-            format: 'indoor',
-            type: 'workshop',
-            region: 'North',
-            image: 'https://via.placeholder.com/300x200'
-          },
-          {
-            id: 10,
-            title: 'Historic City Walking Tour',
-            date: 'Nov 15, 2024',
-            location: 'Old Town Square',
-            description: 'Explore the city\'s rich history with a knowledgeable local guide.',
-            format: 'outdoor',
-            type: 'tours',
-            region: 'Central',
-            image: 'https://via.placeholder.com/300x200'
-          },
-          {
-            id: 11,
-            title: 'Beach Volleyball Championship',
-            date: 'Nov 18, 2024',
-            location: 'Sunny Beach Resort',
-            description: 'Annual beach volleyball tournament with teams from across the region.',
-            format: 'outdoor',
-            type: 'sports',
-            region: 'South',
-            image: 'https://via.placeholder.com/300x200'
-          },
-          {
-            id: 12,
-            title: 'International Food Festival',
-            date: 'Nov 22, 2024',
-            location: 'Riverside Park',
-            description: 'Celebrate global cuisines with food stalls, cooking demonstrations, and cultural performances.',
-            format: 'outdoor',
-            type: 'culture',
-            region: 'East',
-            image: 'https://via.placeholder.com/300x200'
-          }
-        ];
-
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        const event = mockEvents.find(e => e.id === parseInt(eventId));
-
-        if (event) {
-          this.event = event;
-        } else {
-          this.error = 'Event not found';
+        const resp = await api.get(`/api/events/${eventId}`);
+        const e = resp.data?.event;
+        if (!e) {
+          throw new Error('Event not found');
         }
+        this.event = {
+          id: e.id,
+          title: e.title,
+          description: e.description,
+          date: e.date,
+          startTime: e.startTime,
+          endTime: e.endTime,
+          location: e.location,
+          organiser: e.organiser,
+          format: e.format,
+          type: e.type,
+          region: e.region,
+          price: e.price ?? 0,
+          image: e.imageUrl && String(e.imageUrl).trim() ? e.imageUrl : placeholderImage
+        };
       } catch (error) {
         console.error('Error fetching event data:', error);
-        this.error = 'Failed to load event data';
+        this.error = error?.response?.data?.error || error?.message || 'Failed to load event data';
       } finally {
         this.loading = false;
       }

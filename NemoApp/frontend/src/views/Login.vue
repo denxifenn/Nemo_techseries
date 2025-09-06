@@ -51,12 +51,12 @@ import InputText from 'primevue/inputtext';
 import Password from 'primevue/password';
 import Button from 'primevue/button';
 
-import { auth, signInWithEmailAndPassword, getIdToken } from '../services/firebase';
-import api from '../services/api';
-import { formatSingaporePhone, phoneToEmail } from '../utils/phoneUtils';
+// Use centralized auth store
+import { useAuthStore } from '../stores/auth';
 
 const router = useRouter();
 const toast = useToast();
+const auth = useAuthStore();
 
 const phone = ref('');
 const password = ref('');
@@ -66,32 +66,22 @@ async function handleLogin() {
     if (!phone.value || !password.value) {
       throw new Error('Phone and password required');
     }
-    const formatted = formatSingaporePhone(phone.value);
-    const emailAlias = phoneToEmail(formatted);
 
-    await signInWithEmailAndPassword(auth, emailAlias, password.value);
+    const result = await auth.login(phone.value, password.value);
+    if (!result?.success) {
+      throw new Error(result?.error || 'Login failed');
+    }
 
-    // Backend login/provisioning with Firebase ID token
-    const token = await getIdToken(true);
-    if (!token) throw new Error('No Firebase ID token. Sign in first.');
-    const name = auth.currentUser?.displayName || undefined;
+    toast.add({ severity: 'success', summary: 'Login success', detail: phone.value, life: 3000 });
 
-    await api.backendLoginWithIdToken(token, { phoneNumber: formatted, name });
-
-    toast.add({ severity: 'success', summary: 'Login success', detail: formatted, life: 3000 });
-    try { router.push('/discover'); } catch {}
+    // If profile not completed, force completion flow
+    if (auth.needsProfileCompletion) {
+      try { router.push('/profile-completion'); } catch {}
+    } else {
+      try { router.push('/discover'); } catch {}
+    }
   } catch (e) {
     let detail = e?.response?.data?.error || e?.message || String(e);
-    const code = e?.code || e?.error?.code;
-    if (code === 'auth/user-not-found') {
-      detail = 'Phone number not registered. Sign up first.';
-    } else if (code === 'auth/wrong-password') {
-      detail = 'Incorrect password. Try again.';
-    } else if (code === 'auth/too-many-requests') {
-      detail = 'Too many attempts. Please wait and try again.';
-    } else if (code === 'auth/invalid-email') {
-      detail = 'Invalid phone alias generated. Please check the phone number format.';
-    }
     toast.add({ severity: 'error', summary: 'Login failed', detail, life: 4000 });
   }
 }

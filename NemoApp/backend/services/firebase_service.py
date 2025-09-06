@@ -79,7 +79,7 @@ class FirebaseService:
         return None
 
     @staticmethod
-    def ensure_user_doc(uid: str, email: str | None = None, name: str | None = None, phoneNumber: str | None = None) -> dict:
+    def ensure_user_doc(uid: str, email: str | None = None, name: str | None = None, phoneNumber: str | None = None, finNumber: str | None = None) -> dict:
         """
         Ensure a Firestore users/{uid} document exists.
         - If missing: create with sensible defaults (role=user, friends=[], profilePicture='')
@@ -114,6 +114,7 @@ class FirebaseService:
                     'uid': uid,
                     'email': email or '',
                     'phoneNumber': inferred_phone or '',
+                    'finNumber': (str(finNumber).strip() if finNumber else ''),
                     # Keep legacy 'name' for backward compatibility, but use 'fullName' as canonical
                     'fullName': full_name,
                     'name': full_name,
@@ -157,6 +158,10 @@ class FirebaseService:
                 updates['phoneNumber'] = str(phoneNumber).strip()
             elif 'phoneNumber' not in data and email and is_phone_email(email):
                 updates['phoneNumber'] = email_to_phone(email)
+
+            # Backfill FIN if provided and currently missing
+            if finNumber and not data.get('finNumber'):
+                updates['finNumber'] = str(finNumber).strip()
 
             # Core role/friends/profilePicture defaults
             if not data.get('role'):
@@ -202,6 +207,7 @@ class FirebaseService:
                 'uid': uid,
                 'email': email or '',
                 'phoneNumber': minimal_phone or '',
+                'finNumber': (str(finNumber).strip() if finNumber else ''),
                 'name': (name or '').strip(),
                 'role': 'user',
                 'friends': [],

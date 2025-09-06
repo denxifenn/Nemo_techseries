@@ -23,45 +23,80 @@
                 </template>
             </Menubar>
         </div>
-        <div>
-            <!-- profile -->
-            <router-link to="/profile">
-                <button class="profile-button"></button>
+        <div class="actions-right">
+            <!-- Profile and auth actions -->
+            <router-link v-if="isAuthenticated" to="/profile">
+                <button class="profile-button" title="Profile"></button>
             </router-link>
+            <Button v-if="isAuthenticated" class="logout-btn" label="Logout" text @click="handleLogout" />
+            <Button v-else class="signin-btn" label="Sign In" @click="goLogin" />
         </div>
     </div>
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { computed } from "vue";
 import { useRouter } from 'vue-router';
 import Menubar from 'primevue/menubar';
 import Ripple from 'primevue/ripple';
+import Button from 'primevue/button';
+
+import { useAuthStore } from '../stores/auth';
 
 const router = useRouter();
+const auth = useAuthStore();
 
-const items = ref([
-    {
-        label: 'Create Event',
-        icon: 'pi pi-plus',
-        route: '/event-creation'
-    },
-    {
-        label: 'Suggest Event',
-        icon: 'pi pi-plus',
-        route: '/event-suggestion'
-    },
-    {
-        label: 'Friends',
-        icon: 'pi pi-users',
-        route: '/friends'
-    },
-    {
-        label: 'API Tester',
-        icon: 'pi pi-bolt',
-        route: '/api-tester'
+const isAuthenticated = computed(() => auth.isAuthenticated);
+const isAdmin = computed(() => auth.isAdmin);
+
+const items = computed(() => {
+    const base = [];
+
+    // Admin-only "Create Event"
+    if (isAdmin.value) {
+        base.push({
+            label: 'Create Event',
+            icon: 'pi pi-plus',
+            route: '/event-creation'
+        });
     }
-]);
+
+    // Authenticated users can suggest events and access friends
+    base.push(
+        {
+            label: 'Suggest Event',
+            icon: 'pi pi-plus',
+            route: '/event-suggestion'
+        },
+        {
+            label: 'Friends',
+            icon: 'pi pi-users',
+            route: '/friends'
+        },
+        {
+            label: 'My Bookings',
+            icon: 'pi pi-calendar',
+            route: '/my-bookings'
+        }
+    );
+
+    // Removed API Tester per requirement
+
+    return base;
+});
+
+function goLogin() {
+    router.push({ name: 'Login' });
+}
+
+async function handleLogout() {
+    try {
+        await auth.logout();
+        router.push({ name: 'Login' });
+    } catch {
+        // ignore
+    }
+}
 </script>
 
 <style scoped>
@@ -73,8 +108,8 @@ h4{
 }
 .profile-button {
   background-image: url('../assets/profilepic.jpg');
-  background-repeat: no-repeat; /* Prevent the image from repeating */
-  background-position: center; /* Position the image within the button */
+  background-repeat: no-repeat;
+  background-position: center;
   background-size: cover;
   border: none;
   padding: 42px;
@@ -83,6 +118,13 @@ h4{
   border-radius: 50%;
   cursor: pointer;
 }
+
+.actions-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 /* .navbar-container {
     display: flex;
     align-items: center;
@@ -137,8 +179,6 @@ h4{
     margin-left: 1rem;
 }
 
-
-
 .p-menubar .p-menuitem-link:hover {
     background-color: #ff0000;
 }
@@ -155,7 +195,4 @@ h4{
   background-color: #f0f0f0 !important;
   color: #000 !important;
 }
-
-
-
 </style>

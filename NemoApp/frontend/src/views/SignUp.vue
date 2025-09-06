@@ -85,11 +85,15 @@ async function handleSignUp() {
   result.value = '';
   loading.value = true;
   try {
-    if (!phone.value || !password.value) {
-      throw new Error('Phone and password required');
+    if (!phone.value || !password.value || !fin.value) {
+      throw new Error('Phone, FIN and password required');
     }
     const formatted = formatSingaporePhone(phone.value);
     const emailAlias = phoneToEmail(formatted);
+    const finNum = (fin.value || '').trim().toUpperCase();
+    if (finNum.length !== 9) {
+      throw new Error('FIN must be 9 characters');
+    }
 
     const cred = await createUserWithEmailAndPassword(auth, emailAlias, password.value);
 
@@ -109,6 +113,7 @@ async function handleSignUp() {
     const resp = await api.backendLoginWithIdToken(token, {
       phoneNumber: formatted,
       name: displayName || undefined,
+      finNumber: finNum,
     });
 
     const userLabel = resp.data?.user?.phoneNumber || resp.data?.user?.uid || 'unknown';

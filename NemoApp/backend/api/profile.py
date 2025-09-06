@@ -22,6 +22,7 @@ def get_profile(current_user):
             'uid': user.get('uid', current_user),
             'phoneNumber': user.get('phoneNumber', ''),
             'fullName': user.get('fullName', user.get('name', '')),
+            'finNumber': user.get('finNumber', ''),
             'age': user.get('age'),
             'nationality': user.get('nationality', ''),
             'languages': user.get('languages', []),

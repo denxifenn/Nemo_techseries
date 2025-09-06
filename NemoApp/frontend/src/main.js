@@ -8,6 +8,9 @@ import 'primeicons/primeicons.css';
 import App from './App.vue';
 import router from './router';
 
+// Pinia store (global state)
+import { pinia } from './stores';
+
 const app = createApp(App);
 
 app.use(PrimeVue, {
@@ -17,5 +20,8 @@ app.use(PrimeVue, {
 });
 app.use(ToastService);
 app.directive('ripple', Ripple);
+
+// Install Pinia before router so guards can access the store
+app.use(pinia);
 app.use(router);
 app.mount('#app');

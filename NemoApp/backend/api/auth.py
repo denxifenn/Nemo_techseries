@@ -19,6 +19,7 @@ def login():
     id_token = data.get('idToken')
     phone_number = data.get('phoneNumber')  # optional, free-form from client
     name = data.get('name')  # optional display name
+    fin_number = data.get('finNumber')  # optional, but recommended to be provided at signup
 
     if not id_token:
         return jsonify({'success': False, 'error': 'Missing idToken'}), 400
@@ -35,8 +36,8 @@ def login():
         except Exception:
             normalized_phone = None
 
-    # Ensure user profile exists; auto-provision on first login, merge phoneNumber/name if provided
-    user = FirebaseService.ensure_user_doc(uid, email=None, name=name, phoneNumber=normalized_phone)
+    # Ensure user profile exists; auto-provision on first login, merge phoneNumber/name/finNumber if provided
+    user = FirebaseService.ensure_user_doc(uid, email=None, name=name, phoneNumber=normalized_phone, finNumber=fin_number)
 
     return jsonify({'success': True, 'user': {
         'uid': user.get('uid') or uid,

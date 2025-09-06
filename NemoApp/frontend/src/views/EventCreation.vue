@@ -401,11 +401,11 @@ const typeOptions = [
 ];
 
 const regionOptions = [
-  { label: "North", value: "north-america" },
-  { label: "South", value: "europe" },
-  { label: "East", value: "asia-pacific" },
-  { label: "West", value: "latin-america" },
-  { label: "Central", value: "middle-east-africa" }
+  { label: "North", value: "north" },
+  { label: "South", value: "south" },
+  { label: "East", value: "east" },
+  { label: "West", value: "west" },
+  { label: "Central", value: "central" }
 ];
 
 const selectedImage = ref(null);
