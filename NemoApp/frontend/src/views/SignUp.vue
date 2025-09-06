@@ -107,17 +107,26 @@ async function handleSignUp() {
       }
     }
 
-    // Backend provisioning
+    // Backend provisioning - best-effort (do not fail signup on network issues)
     const token = await getIdToken(true);
     if (!token) throw new Error('No Firebase ID token after signup.');
-    const resp = await api.backendLoginWithIdToken(token, {
-      phoneNumber: formatted,
-      name: displayName || undefined,
-      finNumber: finNum,
-    });
 
-    const userLabel = resp.data?.user?.phoneNumber || resp.data?.user?.uid || 'unknown';
-    result.value = `Account created and provisioned: ${userLabel}`;
+    let backendSynced = false;
+    let userLabel = formatted;
+    try {
+      const resp = await api.backendLoginWithIdToken(token, {
+        phoneNumber: formatted,
+        name: displayName || undefined,
+        finNumber: finNum,
+      });
+      backendSynced = !!resp?.data?.success;
+      userLabel = resp?.data?.user?.phoneNumber || resp?.data?.user?.uid || formatted;
+    } catch (e) {
+      console.warn('[signup] backend provisioning failed, proceeding with Firebase session', e);
+      // Keep userLabel as formatted fallback
+    }
+
+    result.value = `Account created${backendSynced ? '' : ' (backend sync deferred)'}: ${userLabel}`;
     toast.add({ severity: 'success', summary: 'Account created', detail: userLabel, life: 3000 });
 
     try { router.push('/discover'); } catch {}

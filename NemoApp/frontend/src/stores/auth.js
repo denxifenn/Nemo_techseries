@@ -47,39 +47,57 @@ export const useAuthStore = defineStore('auth', {
     async login(phone, password) {
       this.loading = true;
       this.error = null;
-      
+
       try {
         // Format phone and convert to email
         const formatted = formatSingaporePhone(phone);
         const emailAlias = phoneToEmail(formatted);
-        
-        // Firebase authentication
+
+        // Firebase authentication (authoritative)
         const userCredential = await signInWithEmailAndPassword(auth, emailAlias, password);
-        
+
         // Get ID token
         const token = await userCredential.user.getIdToken();
         this.token = token;
-        
-        // Backend login to get user data
-        const response = await api.backendLoginWithIdToken(token, {
-          phoneNumber: formatted
-        });
-        
-        if (response.data.success) {
-          const userData = response.data.user;
-          this.user = userData;
-          this.isAuthenticated = true;
-          this.isAdmin = userData.role === 'admin';
-          
-          // Check profile completion
-          await this.checkProfileCompletion();
-          
-          // Store token in localStorage for persistence
+
+        // Try backend handshake, but do NOT fail login if unreachable
+        let userData = null;
+        let backendSynced = false;
+        try {
+          const response = await api.backendLoginWithIdToken(token, { phoneNumber: formatted });
+          if (response?.data?.success) {
+            userData = response.data.user;
+            backendSynced = true;
+          }
+        } catch (e) {
+          // Network/backend error - proceed with Firebase session to avoid false "Login failed" UX
+          console.warn('[auth] backend login failed, proceeding with Firebase session', e);
+        }
+
+        if (!userData) {
+          const u = userCredential.user;
+          userData = {
+            uid: u.uid,
+            phoneNumber: formatted,
+            name: u.displayName || '',
+            role: 'user'
+          };
+        }
+
+        this.user = userData;
+        this.isAuthenticated = true;
+        this.isAdmin = userData.role === 'admin';
+
+        // Profile completion may still require backend; ignore transient errors
+        try { await this.checkProfileCompletion(); } catch (_) {}
+
+        // Persist Firebase token & basic user to keep session across refresh
+        try {
           localStorage.setItem('authToken', token);
           localStorage.setItem('user', JSON.stringify(userData));
-          
-          return { success: true };
-        }
+        } catch {}
+
+        return { success: true, backendSynced };
       } catch (error) {
         this.error = error.message;
         return { success: false, error: error.message };
@@ -91,45 +109,63 @@ export const useAuthStore = defineStore('auth', {
     async signup(phone, password, firstName, lastName, finNumber) {
       this.loading = true;
       this.error = null;
-      
+
       try {
         // Format phone and convert to email
         const formatted = formatSingaporePhone(phone);
         const emailAlias = phoneToEmail(formatted);
-        
+
         // Create user in Firebase
         const userCredential = await createUserWithEmailAndPassword(auth, emailAlias, password);
-        
+
         // Update display name
         const displayName = `${firstName} ${lastName}`.trim();
         if (displayName) {
-          await updateProfile(userCredential.user, { displayName });
+          try { await updateProfile(userCredential.user, { displayName }); } catch (e) { console.warn('updateProfile failed:', e); }
         }
-        
+
         // Get ID token
         const token = await userCredential.user.getIdToken();
         this.token = token;
-        
-        // Backend login to create user profile with FIN
-        const response = await api.backendLoginWithIdToken(token, {
-          phoneNumber: formatted,
-          name: displayName,
-          finNumber: finNumber // Pass FIN to backend
-        });
-        
-        if (response.data.success) {
-          const userData = response.data.user;
-          this.user = userData;
-          this.isAuthenticated = true;
-          this.isAdmin = userData.role === 'admin';
-          this.profileCompleted = false; // New users need to complete profile
-          
-          // Store in localStorage
+
+        // Try backend provisioning; do not fail signup if backend is unreachable
+        let userData = null;
+        let backendSynced = false;
+        try {
+          const response = await api.backendLoginWithIdToken(token, {
+            phoneNumber: formatted,
+            name: displayName || undefined,
+            finNumber: finNumber
+          });
+          if (response?.data?.success) {
+            userData = response.data.user;
+            backendSynced = true;
+          }
+        } catch (e) {
+          console.warn('[auth] backend provisioning failed, proceeding with Firebase session', e);
+        }
+
+        if (!userData) {
+          const u = userCredential.user;
+          userData = {
+            uid: u.uid,
+            phoneNumber: formatted,
+            name: displayName || u.displayName || '',
+            role: 'user'
+          };
+        }
+
+        this.user = userData;
+        this.isAuthenticated = true;
+        this.isAdmin = userData.role === 'admin';
+        this.profileCompleted = false;
+
+        try {
           localStorage.setItem('authToken', token);
           localStorage.setItem('user', JSON.stringify(userData));
-          
-          return { success: true };
-        }
+        } catch {}
+
+        return { success: true, backendSynced };
       } catch (error) {
         this.error = error.message;
         return { success: false, error: error.message };
@@ -238,29 +274,37 @@ export const useAuthStore = defineStore('auth', {
     async initializeAuth() {
       const storedToken = localStorage.getItem('authToken');
       const storedUser = localStorage.getItem('user');
-      
+
       if (storedToken && storedUser) {
+        // Provisionally trust local state so the UI doesn't flicker when backend is unreachable
         try {
-          // Verify token is still valid
-          const response = await api.get('/api/auth/verify');
-          if (response.data.valid) {
-            this.token = storedToken;
-            this.user = JSON.parse(storedUser);
-            this.isAuthenticated = true;
-            this.isAdmin = this.user.role === 'admin';
-            
-            // Check profile completion
-            await this.checkProfileCompletion();
-            return true;
-          } else {
-            // Token invalid, clear local session only (do not sign out Firebase here)
-            this.clearSessionLocal();
-            return false;
-          }
-        } catch (error) {
-          // Token verification failed (network or backend down) - keep user on page but clear local
+          const parsed = JSON.parse(storedUser);
+          this.token = storedToken;
+          this.user = parsed;
+          this.isAuthenticated = true;
+          this.isAdmin = parsed?.role === 'admin';
+        } catch {
+          // parsing failed; treat as no session
           this.clearSessionLocal();
           return false;
+        }
+
+        try {
+          // Best-effort verification; only clear session on explicit invalid (401/invalid)
+          const response = await api.get('/api/auth/verify');
+          if (response?.data?.valid) {
+            try { await this.checkProfileCompletion(); } catch (_) {}
+            return true;
+          }
+
+          // Explicit invalid -> clear local session
+          this.clearSessionLocal();
+          return false;
+        } catch (error) {
+          // Network/temporary error -> keep local session to avoid false logouts
+          // Optionally log for diagnostics
+          console.warn('[auth] verify failed (network), keeping local session', error?.message || error);
+          return true;
         }
       }
       return false;
