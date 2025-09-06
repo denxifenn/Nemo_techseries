@@ -60,7 +60,7 @@
   display: flex;
   flex-direction: column;
   gap: 3rem;
-  margin-top: 6rem;
+  margin-top: 1rem;
 }
 
 .nav-bottom {
