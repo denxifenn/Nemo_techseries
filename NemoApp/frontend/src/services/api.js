@@ -54,12 +54,15 @@ async function resolveAuthHeader() {
   // Priority: manual token in localStorage -> Firebase ID token -> none
   const manual = getManualToken();
   if (manual && manual.trim().length > 0) {
+    console.debug('[api] resolveAuthHeader: using manual token from localStorage');
     return { Authorization: `Bearer ${manual.trim()}` };
   }
   const fbToken = await getIdToken();
   if (fbToken) {
+    console.debug('[api] resolveAuthHeader: using Firebase ID token');
     return { Authorization: `Bearer ${fbToken}` };
   }
+  console.debug('[api] resolveAuthHeader: no token available');
   return {};
 }
 
@@ -121,9 +124,13 @@ async function request(path, options = {}) {
 
   let finalHeaders = { ...(headers || {}) };
 
-  if (!skipAuth) {
+  if (!skipAuth && !('Authorization' in finalHeaders)) {
     const authHeader = await resolveAuthHeader();
     finalHeaders = { ...finalHeaders, ...authHeader };
+  } else if (!skipAuth && ('Authorization' in finalHeaders)) {
+    console.debug('[api] request: explicit Authorization header provided; not overriding');
+  } else if (skipAuth) {
+    console.debug('[api] request: skipAuth=true; not attaching auth header');
   }
 
   let finalBody = body;
@@ -131,6 +138,9 @@ async function request(path, options = {}) {
     finalHeaders['Content-Type'] = finalHeaders['Content-Type'] || 'application/json';
     finalBody = JSON.stringify(body);
   }
+
+  const hasAuth = 'Authorization' in finalHeaders;
+  console.debug(`[api] ${method.toUpperCase()} ${url}`, { hasAuth, skipAuth: !!skipAuth });
 
   const resp = await fetch(url, {
     method,
@@ -187,7 +197,7 @@ const api = {
       method: 'POST',
       headers: { Authorization: `Bearer ${String(idToken || '').trim()}` },
       body: { idToken },
-      // skipAuth: true,
+      skipAuth: true, // avoid overriding explicit Authorization
     });
   },
   async backendVerify() {

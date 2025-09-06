@@ -38,6 +38,8 @@ export const useAuthStore = defineStore('auth', {
         // Get ID token
         const token = await userCredential.user.getIdToken();
         this.token = token;
+        try { api.setManualToken(token); } catch {}
+        console.debug('[auth] login: token acquired and manual token configured');
         
         // Backend login to get user data
         const response = await api.backendLoginWithIdToken(token, {
@@ -88,6 +90,8 @@ export const useAuthStore = defineStore('auth', {
         // Get ID token
         const token = await userCredential.user.getIdToken();
         this.token = token;
+        try { api.setManualToken(token); } catch {}
+        console.debug('[auth] signup: token acquired and manual token configured');
         
         // Backend login to create user profile with FIN
         const response = await api.backendLoginWithIdToken(token, {
@@ -130,6 +134,8 @@ export const useAuthStore = defineStore('auth', {
         // Clear localStorage
         localStorage.removeItem('authToken');
         localStorage.removeItem('user');
+        try { api.clearManualToken(); } catch {}
+        console.debug('[auth] logout: cleared manual token');
         
         return { success: true };
       } catch (error) {
@@ -218,8 +224,13 @@ export const useAuthStore = defineStore('auth', {
       const storedToken = localStorage.getItem('authToken');
       const storedUser = localStorage.getItem('user');
       
+      console.debug('[auth] initializeAuth: hasToken=%s hasUser=%s', !!storedToken, !!storedUser);
+
       if (storedToken && storedUser) {
         try {
+          // Prime API client with persisted token before verification
+          try { api.setManualToken(storedToken); console.debug('[auth] initializeAuth: manual token configured'); } catch {}
+
           // Verify token is still valid
           const response = await api.get('/api/auth/verify');
           if (response.data.valid) {
@@ -233,11 +244,13 @@ export const useAuthStore = defineStore('auth', {
             return true;
           } else {
             // Token invalid, clear local session only (do not sign out Firebase here)
+            try { api.clearManualToken(); } catch {}
             this.clearSessionLocal();
             return false;
           }
         } catch (error) {
           // Token verification failed (network or backend down) - keep user on page but clear local
+          try { api.clearManualToken(); } catch {}
           this.clearSessionLocal();
           return false;
         }
