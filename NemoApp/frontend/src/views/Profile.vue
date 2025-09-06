@@ -291,9 +291,9 @@ export default {
 }
 
 .profile-page {
-  flex: 1;            
+  flex: 1;
   padding: 2rem;
-  margin-left: 0;       
+  margin-left: 250px;
   max-width: 100%;
 }
 
@@ -310,6 +310,7 @@ export default {
   align-items: center;
   gap: 2rem;
   flex-wrap: wrap;
+  margin-top: 3rem;
 }
 
 .avatar-section {
@@ -601,6 +602,7 @@ export default {
 
   .profile-page {
     padding: 1rem 0.5rem;
+    margin-left: 0;
   }
 
   .info-grid {
