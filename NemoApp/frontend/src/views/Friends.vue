@@ -8,12 +8,36 @@
         <div class="page-header">
           <h1 class="page-title">MY FRIENDS</h1>
           <p class="page-subtitle">Stay connected with your network</p>
+
+          <!-- Add Friend by Phone -->
+          <div class="add-friend">
+            <InputText
+              v-model="addPhone"
+              placeholder="Enter friend's Singapore phone (e.g. 9123 4567 or +65 9123 4567)"
+              class="add-friend-input"
+            />
+            <Button
+              :label="sending ? 'Sending...' : 'Add Friend'"
+              :loading="sending"
+              class="add-friend-btn"
+              @click="sendFriendRequest"
+            />
+          </div>
         </div>
 
-        <!-- Friends Grid -->
-        <div class="friends-grid">
-          <Card 
-            v-for="friend in friends" 
+        <!-- Friends Grid / Empty state -->
+        <div v-if="loading" class="loading-state">
+          Loading friends...
+        </div>
+
+        <div v-else-if="friends.length === 0" class="empty-state">
+          <h3>No friends yet</h3>
+          <p>Add friends using their Singapore phone number above.</p>
+        </div>
+
+        <div v-else class="friends-grid">
+          <Card
+            v-for="friend in friends"
             :key="friend.id"
             class="friend-card"
           >
@@ -21,8 +45,8 @@
               <div class="friend-content">
                 <!-- Profile Image -->
                 <div class="friend-avatar">
-                  <Avatar 
-                    :image="friend.avatar" 
+                  <Avatar
+                    :image="friend.avatar"
                     :label="friend.initials"
                     size="large"
                     shape="circle"
@@ -131,7 +155,7 @@
 
 <script>
 import ProfileNavBar from "@/components/ProfileNavBar.vue";
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import Card from 'primevue/card'
 import Avatar from 'primevue/avatar'
 import Button from 'primevue/button'
@@ -139,7 +163,9 @@ import Dialog from 'primevue/dialog'
 import Divider from 'primevue/divider'
 import Tag from 'primevue/tag'
 import Toast from 'primevue/toast'
+import InputText from 'primevue/inputtext'
 import { useToast } from 'primevue/usetoast'
+import api from '@/services/api'
 
 export default {
   name: 'MyFriendsPage',
@@ -151,94 +177,79 @@ export default {
     Dialog,
     Divider,
     Tag,
-    Toast
+    Toast,
+    InputText
   },
   setup() {
     const toast = useToast()
     const showProfileDialog = ref(false)
     const selectedFriend = ref(null)
 
-    // Sample friends data - Migrant workers in Singapore
-    const friends = ref([
-      {
-        id: 1,
-        name: 'Maria Santos',
-        role: 'Domestic Helper',
-        company: 'Private Household',
-        avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b602?w=150&h=150&fit=crop&crop=face',
-        initials: 'MS',
-        mutualFriends: 12,
-        friendsSince: '2021',
-        bio: 'Caring domestic helper from Philippines. Love taking care of families and helping with household needs.',
-        interests: ['Cooking', 'Childcare', 'Filipino Culture'],
-        totalConnections: 45
-      },
-      {
-        id: 2,
-        name: 'Ravi Kumar',
-        role: 'Construction Worker',
-        company: 'Build-Tech Construction Pte Ltd',
-        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
-        initials: 'RK',
-        mutualFriends: 8,
-        friendsSince: '2020',
-        bio: 'Experienced construction worker from India. Specialized in building infrastructure and helping Singapore grow.',
-        interests: ['Cricket', 'Tamil Movies', 'Cooking'],
-        totalConnections: 62
-      },
-      {
-        id: 3,
-        name: 'Siti Aminah',
-        role: 'Factory Worker',
-        company: 'Metro Electronics Pte Ltd',
-        avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face',
-        initials: 'SA',
-        mutualFriends: 15,
-        friendsSince: '2022',
-        bio: 'Dedicated factory worker from Indonesia. Working hard to support family back home while learning new skills.',
-        interests: ['Badminton', 'Indonesian Food', 'Learning English'],
-        totalConnections: 38
-      },
-      {
-        id: 4,
-        name: 'Zhang Wei',
-        role: 'Kitchen Helper',
-        company: 'Golden Dragon Restaurant',
-        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
-        initials: 'ZW',
-        mutualFriends: 6,
-        friendsSince: '2023',
-        bio: 'Hardworking kitchen helper from China. Learning Singaporean cuisine and saving money for family.',
-        interests: ['Cooking', 'Table Tennis', 'Chinese Opera'],
-        totalConnections: 28
-      },
-      {
-        id: 5,
-        name: 'Kumari Devi',
-        role: 'Cleaner',
-        company: 'CleanPro Services Pte Ltd',
-        avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face',
-        initials: 'KD',
-        mutualFriends: 20,
-        friendsSince: '2019',
-        bio: 'Experienced cleaner from Bangladesh. Takes pride in keeping Singapore clean and beautiful.',
-        interests: ['Bengali Music', 'Gardening', 'Community Service'],
-        totalConnections: 54
-      },
-      {
-        id: 6,
-        name: 'Jose Reyes',
-        role: 'Security Guard',
-        company: 'SecureGuard Services Pte Ltd',
-        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face',
-        initials: 'JR',
-        mutualFriends: 9,
-        friendsSince: '2023',
-        bio: 'Reliable security guard from Philippines. Ensuring safety and security for Singaporean communities.',
-        interests: ['Basketball', 'Filipino Movies', 'Reading'],
-        totalConnections: 41
+    const friends = ref([])
+    const loading = ref(false)
+
+    const addPhone = ref('')
+    const sending = ref(false)
+
+    const placeholderAvatar = 'https://via.placeholder.com/150?text=Friend'
+
+    function computeInitials(fullName) {
+      const parts = String(fullName || '').trim().split(/\s+/)
+      const first = parts[0]?.[0] || ''
+      const last = parts.length > 1 ? parts[parts.length - 1]?.[0] : ''
+      return (first + last).toUpperCase() || 'U'
+    }
+
+    async function loadFriends() {
+      loading.value = true
+      try {
+        const resp = await api.get('/api/friends')
+        const list = Array.isArray(resp.data?.friends) ? resp.data.friends : []
+        friends.value = list.map(f => ({
+          id: f.id,
+          name: f.name || 'Friend',
+          avatar: (f.profilePicture && String(f.profilePicture).trim()) ? f.profilePicture : placeholderAvatar,
+          initials: computeInitials(f.name || 'Friend'),
+          // defaults to satisfy existing UI
+          role: '',
+          company: '',
+          mutualFriends: 0,
+          friendsSince: '',
+          bio: '',
+          interests: [],
+          totalConnections: 0
+        }))
+      } catch (e) {
+        const msg = e?.response?.data?.error || e?.message || 'Failed to load friends'
+        toast.add({ severity: 'error', summary: 'Friends', detail: msg, life: 3000 })
+        friends.value = []
+      } finally {
+        loading.value = false
       }
-    ])
+    }
+
+    async function sendFriendRequest() {
+      const phone = (addPhone.value || '').trim()
+      if (!phone) {
+        toast.add({ severity: 'warn', summary: 'Add Friend', detail: 'Enter a phone number', life: 2500 })
+        return
+      }
+      sending.value = true
+      try {
+        await api.post('/api/friends/request', { phoneNumber: phone })
+        toast.add({ severity: 'success', summary: 'Friend Request', detail: 'Request sent', life: 2500 })
+        addPhone.value = ''
+      } catch (e) {
+        const msg = e?.response?.data?.error || e?.message || 'Failed to send request'
+        toast.add({ severity: 'error', summary: 'Friend Request', detail: msg, life: 3500 })
+      } finally {
+        sending.value = false
+      }
+    }
+
+    onMounted(() => {
+      loadFriends()
+    })
 
     const viewProfile = (friend) => {
       selectedFriend.value = friend
@@ -252,10 +263,14 @@ export default {
 
     return {
       friends,
+      loading,
+      addPhone,
+      sending,
       showProfileDialog,
       selectedFriend,
       viewProfile,
       closeProfile,
+      sendFriendRequest,
       toast
     }
   }
@@ -294,6 +309,45 @@ export default {
 .page-subtitle {
   color: white;
   font-size: 1.1rem;
+}
+
+/* Add Friend input row */
+.add-friend {
+  margin: 1rem auto 0;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  align-items: center;
+  max-width: 640px;
+}
+
+.add-friend-input {
+  flex: 1;
+}
+
+.add-friend-btn {
+  background-color: #EC7600 !important;
+  border-color: #EC7600 !important;
+  color: #fff !important;
+  font-weight: 600;
+}
+
+/* Loading / Empty states */
+.loading-state,
+.empty-state {
+  text-align: center;
+  color: #ffffff;
+  padding: 2rem 1rem;
+}
+
+.empty-state h3 {
+  margin: 0 0 0.5rem 0;
+  color: #ffffff;
+}
+
+.empty-state p {
+  margin: 0;
+  color: #f1f5f9;
 }
 
 .friends-grid {
