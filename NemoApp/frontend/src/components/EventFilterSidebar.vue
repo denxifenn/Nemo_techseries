@@ -252,6 +252,7 @@
         class="price-input"
         :min="0"
         :max="500"
+        @input="handleMinChange"
       />
       <span class="price-separator">–</span>
       <InputText
@@ -260,6 +261,7 @@
         class="price-input"
         :min="10"
         :max="500"
+        @input="handleMaxChange"
       />
     </div>
 
@@ -275,7 +277,7 @@
         <input
           type="range"
           class="slider-thumb slider-min"
-          v-model="filters.priceRange[0]"
+          v-model.number="filters.priceRange[0]"
           :min="0"
           :max="500"
           step="10"
@@ -284,8 +286,8 @@
         <input
           type="range"
           class="slider-thumb slider-max"
-          v-model="filters.priceRange[1]"
-          :min="10"
+          v-model.number="filters.priceRange[1]"
+          :min="0"
           :max="500"
           step="10"
           @input="handleMaxChange"
@@ -358,14 +360,24 @@ export default {
     }
 
     const handleMinChange = () => {
-      if (filters.value.priceRange[0] > filters.value.priceRange[1] - 10) {
-        filters.value.priceRange[0] = filters.value.priceRange[1] - 10
+      // Ensure min doesn't exceed max
+      if (filters.value.priceRange[0] > filters.value.priceRange[1]) {
+        filters.value.priceRange[0] = filters.value.priceRange[1]
+      }
+      // Ensure min is within bounds
+      if (filters.value.priceRange[0] < 0) {
+        filters.value.priceRange[0] = 0
       }
     }
 
     const handleMaxChange = () => {
-      if (filters.value.priceRange[1] < filters.value.priceRange[0] + 10) {
-        filters.value.priceRange[1] = filters.value.priceRange[0] + 10
+      // Ensure max doesn't go below min
+      if (filters.value.priceRange[1] < filters.value.priceRange[0]) {
+        filters.value.priceRange[1] = filters.value.priceRange[0]
+      }
+      // Ensure max is within bounds
+      if (filters.value.priceRange[1] > 500) {
+        filters.value.priceRange[1] = 500
       }
     }
 
@@ -698,22 +710,23 @@ export default {
 /* Dual Range Slider */
 .dual-range-slider {
   position: relative;
-  margin-top: 10px;
+  margin-top: 20px;
+  padding: 10px 0;
 }
 
 .slider-track {
   position: relative;
   width: 100%;
-  height: 4px;
+  height: 6px;
   background: #e5e7eb;
-  border-radius: 2px;
+  border-radius: 3px;
 }
 
 .slider-range {
   position: absolute;
   height: 100%;
-  background: #2d2d4d; /* dark navy bar */
-  border-radius: 2px;
+  background: #EC7600; /* Orange theme to match the app */
+  border-radius: 3px;
   top: 0;
   pointer-events: none;
 }
@@ -727,78 +740,85 @@ export default {
   outline: none;
   position: absolute;
   width: 100%;
-  height: 4px;
-  top: 50%;
-  transform: translateY(-50%);
+  height: 20px;
+  top: -7px;
   pointer-events: none;
 }
 
 .slider-thumb::-webkit-slider-track {
   background: transparent;
   border: none;
-  height: 4px;
+  height: 6px;
 }
 
 .slider-thumb::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 16px;
-  height: 16px;
-  background: #2d2d4d;
-  border-radius: 2px;
+  width: 20px;
+  height: 20px;
+  background: #EC7600;
+  border: 2px solid white;
+  border-radius: 50%;
   cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  transition: transform 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
   pointer-events: all;
-}
-
-.slider-min::-webkit-slider-thumb {
-  margin-left: -8px;
-}
-
-.slider-max::-webkit-slider-thumb {
-  margin-right: -16px;
+  position: relative;
 }
 
 .slider-thumb::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  background: #d97706;
+}
+
+.slider-thumb::-webkit-slider-thumb:active {
   transform: scale(1.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
 .slider-thumb::-moz-range-track {
   background: transparent;
   border: none;
-  height: 4px;
+  height: 6px;
 }
 
 .slider-thumb::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
-  background: #2d2d4d;
-  border-radius: 2px;
+  width: 20px;
+  height: 20px;
+  background: #EC7600;
+  border: 2px solid white;
+  border-radius: 50%;
   cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  border: none;
-  transition: transform 0.2s ease;
-}
-
-.slider-min::-moz-range-thumb {
-  margin-left: -8px;
-}
-
-.slider-max::-moz-range-thumb {
-  margin-right: -16px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+  position: relative;
 }
 
 .slider-thumb::-moz-range-thumb:hover {
+  transform: scale(1.2);
+  background: #d97706;
+}
+
+.slider-thumb::-moz-range-thumb:active {
   transform: scale(1.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
 .slider-min {
-  z-index: 3;
+  z-index: 2;
 }
 
 .slider-max {
-  z-index: 4;
+  z-index: 1;
+}
+
+/* Fix for overlapping sliders */
+.slider-min::-webkit-slider-thumb {
+  z-index: 2;
+}
+
+.slider-max::-webkit-slider-thumb {
+  z-index: 1;
 }
 
 /* Price Input Fields */

@@ -11,6 +11,7 @@
     "@primevue/forms": "^4.3.8",
     "@primevue/themes": "^4.3.8",
     "firebase": "^9.0.0",
+    "pinia": "^2.3.1",
     "primeicons": "^7.0.0",
     "primevue": "^4.3.8",
     "valibot": "^1.1.0",

@@ -226,89 +226,48 @@ if __name__ == "__main__":
 
 ## Phase 2: Authentication APIs
 
-### Task KAN-7: Login & Register APIs
+### Task KAN-7: Token-based Login (Frontend-only signup)
+
+Users sign up and sign in on the frontend using Firebase Auth (email/password). The backend does not receive raw passwords. The frontend sends an ID token to the backend, which verifies it and auto-provisions the user document on first login.
 
 ```python
 # backend/api/auth.py
 from flask import Blueprint, request, jsonify
-from services.firebase_service import FirebaseService, auth, db
-import firebase_admin.auth as firebase_auth
+from services.firebase_service import FirebaseService
 
 auth_bp = Blueprint('auth', __name__)
 
-@auth_bp.route('/api/auth/register', methods=['POST'])
-def register():
-    """Register new user"""
-    try:
-        data = request.json
-        email = data.get('email')
-        password = data.get('password')
-        name = data.get('name')
-        
-        # Validate input
-        if not email or not password or not name:
-            return jsonify({'error': 'Missing required fields'}), 400
-        
-        # Create user
-        uid = FirebaseService.create_user(email, password, name)
-        
-        return jsonify({
-            'success': True,
-            'uid': uid,
-            'message': 'User registered successfully'
-        }), 201
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 400
-
 @auth_bp.route('/api/auth/login', methods=['POST'])
 def login():
-    """Login endpoint - Frontend handles Firebase Auth"""
-    try:
-        data = request.json
-        token = data.get('idToken')
-        
-        if not token:
-            return jsonify({'error': 'No token provided'}), 401
-        
-        # Verify token
-        uid = FirebaseService.verify_token(token)
-        if not uid:
-            return jsonify({'error': 'Invalid token'}), 401
-        
-        # Get user data
-        user_doc = db.collection('users').document(uid).get()
-        if not user_doc.exists:
-            return jsonify({'error': 'User not found'}), 404
-        
-        user_data = user_doc.to_dict()
-        
-        return jsonify({
-            'success': True,
-            'user': {
-                'uid': uid,
-                'email': user_data.get('email'),
-                'name': user_data.get('name'),
-                'role': user_data.get('role')
-            }
-        }), 200
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 400
+    """Frontend sends { idToken }; backend verifies and returns user profile."""
+    data = request.get_json() or {}
+    id_token = data.get('idToken')
+    if not id_token:
+        return jsonify({'success': False, 'error': 'Missing idToken'}), 400
+
+    uid = FirebaseService.verify_token(id_token)
+    if not uid:
+        return jsonify({'success': False, 'error': 'Invalid token'}), 401
+
+    # Auto-provision users/{uid} if missing
+    user = FirebaseService.ensure_user_doc(uid)
+    return jsonify({'success': True, 'user': {
+        'uid': user.get('uid') or uid,
+        'email': user.get('email'),
+        'name': user.get('name'),
+        'role': user.get('role', 'user')
+    }}), 200
 
 @auth_bp.route('/api/auth/verify', methods=['GET'])
 def verify_token():
     """Verify if token is valid"""
     token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    
     if not token:
         return jsonify({'valid': False}), 401
-    
     uid = FirebaseService.verify_token(token)
-    if uid:
-        return jsonify({'valid': True, 'uid': uid}), 200
-    
-    return jsonify({'valid': False}), 401
+    if not uid:
+        return jsonify({'valid': False}), 401
+    return jsonify({'valid': True, 'uid': uid}), 200
 ```
 
 ---
@@ -993,5 +952,4 @@ All responses follow this format:
 
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
-| POST | /api/auth/register | Register new user | No |
 | POST | /api/auth/login

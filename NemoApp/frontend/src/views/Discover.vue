@@ -2,9 +2,11 @@
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import Card from 'primevue/card'
-import { ref, computed } from 'vue'
+import Paginator from 'primevue/paginator'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import EventFilterSidebar from '../components/EventFilterSidebar.vue'
+import api from '../services/api'
 
 export default {
   name: 'Discover',
@@ -12,7 +14,8 @@ export default {
     Button,
     Tag,
     Card,
-    EventFilterSidebar
+    EventFilterSidebar,
+    Paginator
   },
   setup() {
     const componentName = ref('Discover')
@@ -34,213 +37,46 @@ export default {
       priceRange: [0, 500]
     })
 
-    // Sample events data - replace with your API call
-    const events = ref([
-      {
-        id: 1,
-        title: 'Basketball Tournament',
-        date: 'Oct 15, 2025',
-        startTime: '2:00 PM',
-        endTime: '6:00 PM',
-        location: 'MPC@Khatib',
-        organiser: 'Active Sports Club',
-        status: 'active',
-        bookingSlots: 50,
-        description: 'Annual basketball tournament for all skill levels.',
-        format: 'indoor',
-        type: 'sports',
-        region: 'North',
-        price: 35,
-        image: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=400&h=250&fit=crop'
-      },
-      {
-        id: 2,
-        title: 'Art Exhibition',
-        date: 'Oct 20, 2025',
-        startTime: '10:00 AM',
-        endTime: '5:00 PM',
-        location: 'National Gallery',
-        organiser: 'Art Society',
-        status: 'active',
-        bookingSlots: 100,
-        description: 'Unique art exhibition featuring local artists.',
-        format: 'indoor',
-        type: 'arts',
-        region: 'South',
-        price: 0,
-        image: 'https://images.unsplash.com/photo-1518998053901-5348d3961a04?q=80&w=1074&auto=format&fit=crop'
-      },
-      {
-        id: 3,
-        title: 'Virtual Cooking Class',
-        date: 'Oct 18, 2024',
-        startTime: '6:00 PM',
-        endTime: '8:00 PM',
-        location: 'Online',
-        organiser: 'Culinary Institute',
-        status: 'active',
-        bookingSlots: 30,
-        description: 'Learn to cook traditional dishes from home.',
-        format: 'online',
-        type: 'workshop',
-        region: 'North',
-        price: 50,
-        image: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?q=80&w=1170&auto=format&fit=crop'
-      },
-      {
-        id: 4,
-        title: 'Outdoor Yoga',
-        date: 'Sept 16, 2025',
-        startTime: '8:00 AM',
-        endTime: '9:30 AM',
-        location: 'Bishan Park',
-        organiser: 'Wellness Center',
-        status: 'active',
-        bookingSlots: 25,
-        description: 'Morning yoga session in the park.',
-        format: 'outdoor',
-        type: 'sports',
-        region: 'Central',
-        price: 0,
-        image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400&h=250&fit=crop'
-      },
-      {
-        id: 5,
-        title: 'Music Festival',
-        date: 'Sept 29, 2025',
-        startTime: '7:00 PM',
-        endTime: '11:00 PM',
-        location: 'Sentosa',
-        organiser: 'Music Events Co.',
-        status: 'active',
-        bookingSlots: 200,
-        description: 'Two-day music festival featuring various artists.',
-        format: 'outdoor',
-        type: 'music',
-        region: 'South',
-        price: 120,
-        image: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=400&h=250&fit=crop'
-      },
-      {
-        id: 6,
-        title: 'Tech Webinar',
-        date: 'Oct 12, 2025',
-        startTime: '3:00 PM',
-        endTime: '4:30 PM',
-        location: 'Online',
-        organiser: 'Tech Hub',
-        status: 'active',
-        bookingSlots: 150,
-        description: 'Learn about the latest technology trends.',
-        format: 'online',
-        type: 'workshop',
-        region: 'East',
-        price: 0,
-        image: 'https://images.unsplash.com/photo-1550622824-c11e494a4b65?q=80&w=1173&auto=format&fit=crop'
-      },
-      {
-        id: 7,
-        title: 'Jazz Night Live',
-        date: 'Nov 1, 2025',
-        startTime: '8:00 PM',
-        endTime: '11:00 PM',
-        location: 'Blue Note Jazz Club',
-        organiser: 'Jazz Society',
-        status: 'active',
-        bookingSlots: 80,
-        description: 'An evening of smooth jazz with local and international artists.',
-        format: 'indoor',
-        type: 'music',
-        region: 'Central',
-        price: 80,
-        image: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=250&fit=crop'
-      },
-      {
-        id: 8,
-        title: 'Modern Dance Performance',
-        date: 'Nov 8, 2025',
-        startTime: '7:30 PM',
-        endTime: '9:30 PM',
-        location: 'City Theater',
-        organiser: 'Dance Collective',
-        status: 'active',
-        bookingSlots: 120,
-        description: 'Contemporary dance showcase featuring innovative choreography.',
-        format: 'indoor',
-        type: 'performance',
-        region: 'West',
-        price: 35,
-        image: 'https://images.unsplash.com/photo-1499439398383-cfcbab21207d?q=80&w=1176&auto=format&fit=crop'
-      },
-      {
-        id: 9,
-        title: 'Digital Photography Workshop',
-        date: 'Nov 12, 2025',
-        startTime: '10:00 AM',
-        endTime: '4:00 PM',
-        location: 'Community Center',
-        organiser: 'Photo Academy',
-        status: 'active',
-        bookingSlots: 25,
-        description: 'Hands-on workshop covering composition, lighting, and editing techniques.',
-        format: 'indoor',
-        type: 'workshop',
-        region: 'North',
-        price: 50,
-        image: 'https://images.unsplash.com/photo-1548502499-ef49e8cf98d4?q=80&w=1170&auto=format&fit=crop'
-      },
-      {
-        id: 10,
-        title: 'Historic City Walking Tour',
-        date: 'Nov 15, 2025',
-        startTime: '9:00 AM',
-        endTime: '12:00 PM',
-        location: 'Old Town Square',
-        organiser: 'Heritage Tours',
-        status: 'active',
-        bookingSlots: 40,
-        description: 'Explore the city\'s rich history with a knowledgeable local guide.',
-        format: 'outdoor',
-        type: 'tours',
-        region: 'Central',
-        price: 75,
-        image: 'https://images.unsplash.com/photo-1654738366489-8e50a99e0469?q=80&w=1176&auto=format&fit=crop'
-      },
-      {
-        id: 11,
-        title: 'Beach Volleyball Championship',
-        date: 'Nov 18, 2024',
-        startTime: '8:00 AM',
-        endTime: '6:00 PM',
-        location: 'Sunny Beach Resort',
-        organiser: 'Volleyball Association',
-        status: 'active',
-        bookingSlots: 200,
-        description: 'Annual beach volleyball tournament with teams from across the region.',
-        format: 'outdoor',
-        type: 'sports',
-        region: 'South',
-        price: 0,
-        image: 'https://images.unsplash.com/photo-1592656094267-764a45160876?q=80&w=1170&auto=format&fit=crop'
-      },
-      {
-        id: 12,
-        title: 'International Food Festival',
-        date: 'Nov 22, 2024',
-        startTime: '11:00 AM',
-        endTime: '9:00 PM',
-        location: 'Riverside Park',
-        organiser: 'Culinary Events Co.',
-        status: 'active',
-        bookingSlots: 300,
-        description: 'Celebrate global cuisines with food stalls, cooking demonstrations, and cultural performances.',
-        format: 'outdoor',
-        type: 'culture',
-        region: 'East',
-        price: 150,
-        image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=250&fit=crop'
+    // Events fetched from backend
+    const events = ref([])
+    const loading = ref(false)
+    const error = ref(null)
+
+    const placeholderImage = '/src/assets/workers_background.jpg'
+
+    async function fetchEvents() {
+      loading.value = true
+      error.value = null
+      try {
+        const resp = await api.get('/api/events', { limit: 50 })
+        const list = Array.isArray(resp.data?.events) ? resp.data.events : []
+        events.value = list.map(e => ({
+          id: e.id,
+          title: e.title,
+          description: e.description,
+          date: e.date,
+          startTime: e.startTime,
+          endTime: e.endTime,
+          location: e.location,
+          organiser: e.organiser,
+          // Represent offline subtypes by venueType for filtering UI that shows indoor/outdoor
+          format: e.format === 'offline' ? (e.venueType || 'offline') : 'online',
+          type: e.type,
+          region: e.region,
+          price: e.price ?? 0,
+          bookingSlots: e.maxParticipants ?? 0,
+          image: e.imageUrl && String(e.imageUrl).trim() ? e.imageUrl : placeholderImage,
+        }))
+      } catch (err) {
+        console.error('Failed to load events', err)
+        error.value = err?.message || String(err)
+        events.value = []
+      } finally {
+        loading.value = false
       }
-    ])
+    }
+
+    onMounted(fetchEvents)
 
     const handleFiltersChange = (filters) => {
       console.log('Discover: Received filters:', filters)
@@ -294,17 +130,23 @@ export default {
       // Filter by timing
       if (currentFilters.value.timing.length > 0) {
         filtered = filtered.filter(event => {
-          const timeStr = event.startTime
-          const [time, period] = timeStr.split(' ')
-          const [hours, minutes] = time.split(':').map(Number)
-          let hour24 = hours
-          if (period === 'PM' && hours !== 12) hour24 += 12
-          if (period === 'AM' && hours === 12) hour24 = 0
+          const timeStr = String(event.startTime || '')
+          let hour24 = 0
+          if (timeStr.includes('AM') || timeStr.includes('PM')) {
+            const [time, period] = timeStr.split(' ')
+            const [hours] = time.split(':').map(Number)
+            hour24 = hours
+            if (period === 'PM' && hours !== 12) hour24 += 12
+            if (period === 'AM' && hours === 12) hour24 = 0
+          } else if (timeStr.includes(':')) {
+            const [hours] = timeStr.split(':').map(Number)
+            hour24 = isNaN(hours) ? 0 : hours
+          }
 
           let timingCategory = ''
-          if (hour24 >= 5 && hour24 < 12) timingCategory = 'morning'
-          else if (hour24 >= 12 && hour24 < 16) timingCategory = 'afternoon'
-          else if (hour24 >= 16 && hour24 < 19) timingCategory = 'evening'
+          if (hour24 >= 6 && hour24 <= 11) timingCategory = 'morning'
+          else if (hour24 >= 12 && hour24 <= 17) timingCategory = 'afternoon'
+          else if (hour24 >= 18 && hour24 <= 21) timingCategory = 'evening'
           else timingCategory = 'night'
 
           return currentFilters.value.timing.includes(timingCategory)
@@ -319,29 +161,26 @@ export default {
           const isIndoorSelected = selectedFormats.includes('indoor')
           const isOutdoorSelected = selectedFormats.includes('outdoor')
 
-          // If offline is selected, include both indoor and outdoor
+          const isOnline = event.format === 'online'
+          const isIndoor = event.format === 'indoor'
+          const isOutdoor = event.format === 'outdoor'
+          const isBoth = event.format === 'both'
+
+          // Online filter
+          if (selectedFormats.includes('online') && isOnline) return true
+
+          // If offline is selected without specific sub-options, allow indoor, outdoor, both
           if (isOfflineSelected && !isIndoorSelected && !isOutdoorSelected) {
-            return event.format === 'indoor' || event.format === 'outdoor'
+            return isIndoor || isOutdoor || isBoth
           }
 
-          // If specific formats are selected, match them exactly
-          if (isIndoorSelected && event.format === 'indoor') return true
-          if (isOutdoorSelected && event.format === 'outdoor') return true
-          if (selectedFormats.includes('online') && event.format === 'online') return true
+          // If specific formats are selected, include 'both' as matching either
+          if (isIndoorSelected && (isIndoor || isBoth)) return true
+          if (isOutdoorSelected && (isOutdoor || isBoth)) return true
 
-          // If offline + indoor are selected, show only indoor
-          if (isOfflineSelected && isIndoorSelected && !isOutdoorSelected) {
-            return event.format === 'indoor'
-          }
-
-          // If offline + outdoor are selected, show only outdoor
-          if (isOfflineSelected && isOutdoorSelected && !isIndoorSelected) {
-            return event.format === 'outdoor'
-          }
-
-          // If offline + indoor + outdoor are selected, show both
+          // If offline + indoor + outdoor are selected, include all offline variants
           if (isOfflineSelected && isIndoorSelected && isOutdoorSelected) {
-            return event.format === 'indoor' || event.format === 'outdoor'
+            return isIndoor || isOutdoor || isBoth
           }
 
           return false
@@ -357,9 +196,8 @@ export default {
 
       // Filter by region
       if (currentFilters.value.region.length > 0) {
-        filtered = filtered.filter(event =>
-          currentFilters.value.region.includes(event.region)
-        )
+        const selected = currentFilters.value.region.map(r => String(r).toLowerCase())
+        filtered = filtered.filter(event => selected.includes(String(event.region).toLowerCase()))
       }
 
       // Filter by price range
@@ -373,6 +211,19 @@ export default {
       return filtered
     })
 
+    const first = ref(0)
+    const rows = ref(12)
+
+    const onPageChange = (e) => {
+      first.value = e.first
+      rows.value = e.rows
+      try { eventsGridRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' }) } catch {}
+    }
+
+    const pagedEvents = computed(() => {
+      return filteredEvents.value.slice(first.value, first.value + rows.value)
+    })
+
     return {
       componentName,
       searchTerm,
@@ -381,6 +232,10 @@ export default {
       currentFilters,
       events,
       filteredEvents,
+      pagedEvents,
+      first,
+      rows,
+      onPageChange,
       handleFiltersChange,
       handleHeroSearch,
       handleSignUp
@@ -405,6 +260,7 @@ export default {
               placeholder="Search events..."
               v-model="searchTerm"
               @keyup.enter="handleHeroSearch"
+              class="search-input"
             >
             <button @click="handleHeroSearch">Search</button>
           </div>
@@ -426,48 +282,59 @@ export default {
         <aside class="sidebar">
           <EventFilterSidebar @filtersChanged="handleFiltersChange" />
         </aside>
-        <div class="events-grid" ref="eventsGridRef">
-          <div 
-            v-for="event in filteredEvents" 
-            :key="event.id"
-            class="event-card"
-          >
-            <Card>
-              <template #header>
-                <div class="event-image">
-                  <img :src="event.image" :alt="event.title" />
-                </div>
-              </template>
-              <template #title>{{ event.title }}</template>
-              <template #subtitle>
-                <div class="event-meta">
-                  <span class="event-date">{{ event.date }} at {{ event.startTime }} - {{ event.endTime }}</span>
-                  <span class="event-location"><span class="material-symbols-outlined">location_on</span> {{ event.location }}</span>
-                  <span class="event-organiser"><span class="material-symbols-outlined">person</span> {{ event.organiser }}</span>
-                  <!-- <span class="event-slots"><span class="material-symbols-outlined">confirmation_number</span>  {{ event.bookingSlots }}</span> -->
-                  <span class="event-price"><span class="material-symbols-outlined">attach_money</span>  {{ event.price }}</span>
-                  <!-- <span class="event-organiser">👤 {{ event.organiser }}</span> -->
-                  <!-- <span class="event-slots">🎫 {{ event.bookingSlots }}</span> -->
-                  <!-- <span class="event-price">{{ event.price === 0 ? '🆓 Free' : `💰 $${event.price}` }}</span> -->
-                </div>
-              </template>
-              <template #content>
-                <p class="event-description">{{ event.description }}</p>
-                <div class="event-tags">
-                  <Tag :value="event.format" severity="secondary" class="format-tag" />
-                  <Tag :value="event.type" severity="secondary" class="format-tag" />
-                  <Tag :value="event.region" severity="secondary" class="format-tag" />
-                </div>
-              </template>
-              <template #footer>
-                <Button
-                  label="Sign Up"
-                  class="p-button-primary signup-btn"
-                  icon="pi pi-calendar-plus"
-                  @click="handleSignUp(event.id)"
-                />
-              </template>
-            </Card>
+
+        <!-- Events content column (grid + pagination) -->
+        <div class="events-content">
+          <div class="events-grid" ref="eventsGridRef">
+            <div
+              v-for="event in pagedEvents"
+              :key="event.id"
+              class="event-card"
+            >
+              <Card>
+                <template #header>
+                  <div class="event-image">
+                    <img :src="event.image" :alt="event.title" />
+                  </div>
+                </template>
+                <template #title>{{ event.title }}</template>
+                <template #subtitle>
+                  <div class="event-meta">
+                    <span class="event-date">{{ event.date }} at {{ event.startTime }} - {{ event.endTime }}</span>
+                    <span class="event-location"><span class="material-symbols-outlined">location_on</span> {{ event.location }}</span>
+                    <span class="event-organiser"><span class="material-symbols-outlined">person</span> {{ event.organiser }}</span>
+                    <span class="event-slots"><span class="material-symbols-outlined">confirmation_number</span>  {{ event.bookingSlots }}</span>
+                    <span class="event-price"><span class="material-symbols-outlined">attach_money</span>  {{ event.price }}</span>
+                  </div>
+                </template>
+                <template #content>
+                  <p class="event-description">{{ event.description }}</p>
+                  <div class="event-tags">
+                    <Tag :value="event.format" severity="secondary" class="format-tag" />
+                    <Tag :value="event.type" severity="secondary" class="format-tag" />
+                    <Tag :value="event.region" severity="secondary" class="format-tag" />
+                  </div>
+                </template>
+                <template #footer>
+                  <Button
+                    label="Sign Up"
+                    class="p-button-primary signup-btn"
+                    icon="pi pi-calendar-plus"
+                    @click="handleSignUp(event.id)"
+                  />
+                </template>
+              </Card>
+            </div>
+          </div>
+
+          <div class="events-pagination">
+            <Paginator
+              :first="first"
+              :rows="rows"
+              :totalRecords="filteredEvents.length"
+              :rowsPerPageOptions="[6,12,24,48]"
+              @page="onPageChange"
+            />
           </div>
         </div>
       </div>
@@ -534,6 +401,11 @@ export default {
   outline: none;
   font-size: 1.1em;
   color: #333;
+  background: transparent;
+}
+
+.search-bar .search-input {
+  color: #333; /* Ensure search text is visible */
 }
 
 .search-bar button {
@@ -593,11 +465,28 @@ export default {
   overflow-y: auto;
 }
 
+.events-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
 .events-grid {
   flex: 1;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
   gap: 20px;
+}
+
+.events-pagination {
+  margin-top: 16px;
+}
+
+.events-pagination :deep(.p-paginator) {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .event-card {

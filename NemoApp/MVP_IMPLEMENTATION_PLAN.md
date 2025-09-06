@@ -113,8 +113,7 @@ This plan focuses ONLY on MVP features from the Jira tasks. We are NOT implement
 {
   suggestionId: "auto_generated",
   userId: "user_uid",
-  eventTitle: "Cooking Class",
-  eventDescription: "Learn to cook local dishes",
+  text: "Any feedback or suggestions for future events...",
   createdAt: timestamp
 }
 ```
@@ -122,9 +121,8 @@ This plan focuses ONLY on MVP features from the Jira tasks. We are NOT implement
 ## Simplified API Endpoints for MVP
 
 ### Authentication
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `POST /api/auth/logout`
+- `POST /api/auth/login` — Frontend authenticates with Firebase Auth (email/password) and sends ID token to backend.
+- `GET /api/auth/verify`
 
 ### Events
 - `GET /api/events` - List all events
@@ -152,7 +150,7 @@ This plan focuses ONLY on MVP features from the Jira tasks. We are NOT implement
 
 ### Admin
 - `POST /api/admin/events` - Create event
-- `GET /api/admin/suggestions` - View suggestions
+- `GET /api/suggestions` - View suggestions (admin only)
 
 ## Frontend Pages Structure (Based on Jira)
 
@@ -287,7 +285,7 @@ backend/
 
 ## MVP Success Criteria
 
-1. Users can register and login
+1. Users can register (via frontend Firebase Auth) and login
 2. Users can browse events
 3. Users can book events (individually or as a group)
 4. Users can manage their profile

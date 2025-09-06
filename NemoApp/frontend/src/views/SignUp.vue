@@ -3,244 +3,164 @@
     <div class="signup-box">
       <h1 class="signup-header">SIGN UP FOR AN ACCOUNT!</h1>
       <div class="card flex justify-center">
-        <Form
-          :initialValues
-          :resolver
-          @submit="onFormSubmit"
-          class="flex flex-col gap-4 w-full sm:w-80"
-        >
-          <!-- <FormField v-slot="$field" name="username" initialValue="" :resolver="zodUserNameResolver" class="flex flex-col gap-1">
-                <InputText type="text" placeholder="Username" />
-                <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{ $field.error?.message }}</Message>
-            </FormField>  -->
-          <FormField
-            v-slot="$field"
-            name="firstname"
-            initialValue=""
-            :resolver="yupFirstNameResolver"
-            class="flex flex-col gap-1"
-          >
-            <InputText
-              type="text"
-              placeholder="First Name"
-              class="first-name-btn"
-            />
-            <Message
-              v-if="$field?.invalid"
-              severity="error"
-              size="small"
-              variant="simple"
-              >{{ $field.error?.message }}</Message
-            >
-          </FormField>
-
-          <FormField
-            v-slot="$field"
-            name="lastname"
-            initialValue=""
-            :resolver="valibotLastNameResolver"
-            class="flex flex-col gap-1"
-          >
-            <InputText
-              type="text"
-              placeholder="Last Name"
-              class="last-name-btn"
-            />
-            <Message
-              v-if="$field?.invalid"
-              severity="error"
-              size="small"
-              variant="simple"
-              >{{ $field.error?.message }}</Message
-            >
-          </FormField>
-
-          <FormField
-            v-slot="$field"
-            name="Phone Number"
-            initialValue=""
-            :resolver="phoneNumberResolver"
-            class="flex flex-col gap-1"
-          >
-            <InputNumber
-              type="text"
-              placeholder="Phone Number"
-              class="phone-number-btn"
-            />
-            <Message
-              v-if="$field?.invalid"
-              severity="error"
-              size="small"
-              variant="simple"
-              >{{ $field.error?.message }}</Message
-            >
-          </FormField>
-
-          <FormField
-            v-slot="$field"
-            name="FIN Number"
-            initialValue=""
-            :resolver="finNumberResolver"
-            class="flex flex-col gap-1"
-          >
-            <InputText
-              type="text"
-              placeholder="FIN Number"
-              class="FIN-number-btn"
-              maxlength="9"
-              v-bind="$field"
-            />
-            <Message
-              v-if="$field?.invalid"
-              severity="error"
-              size="small"
-              variant="simple"
-              >{{ $field.error?.message }}</Message
-            >
-          </FormField>
-
-          <FormField
-            v-slot="$field"
-            name="password"
-            initialValue=""
-            :resolver="customPasswordResolver"
-            class="flex flex-col gap-1"
-          >
-            <Password
-              type="text"
-              placeholder="Password"
-              :feedback="false"
-              toggleMask
-              fluid
-              class="password-btn"
-            />
-            <Message
-              v-if="$field?.invalid"
-              severity="error"
-              size="small"
-              variant="simple"
-              >{{ $field.error?.message }}</Message
-            >
-          </FormField>
+        <section class="flex flex-col gap-4 w-full sm:w-80">
+          <InputText
+            v-model="firstName"
+            type="text"
+            placeholder="First Name"
+            class="first-name-btn"
+          />
+          <InputText
+            v-model="lastName"
+            type="text"
+            placeholder="Last Name"
+            class="last-name-btn"
+          />
+          <InputText
+            v-model="phone"
+            type="text"
+            placeholder="Phone Number"
+            class="phone-number-btn"
+          />
+          <InputText
+            v-model="fin"
+            type="text"
+            placeholder="FIN Number"
+            maxlength="9"
+            class="FIN-number-btn"
+          />
+          <Password
+            v-model="password"
+            type="text"
+            placeholder="Password"
+            :feedback="false"
+            toggleMask
+            fluid
+            class="password-btn"
+          />
           <Button
-            type="I"
+            type="button"
             severity="secondary"
             label="Sign Up"
             style="background-color: #ffa690; color: black; font-weight: bold;"
             class="submit-btn"
+            @click="handleSignUp"
           />
-        </Form>
+          <div v-if="error" class="error">{{ error }}</div>
+          <div v-if="result" class="ok">{{ result }}</div>
+        </section>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { reactive } from "vue";
-import { valibotResolver } from "@primevue/forms/resolvers/valibot";
-import { yupResolver } from "@primevue/forms/resolvers/yup";
-import { zodResolver } from "@primevue/forms/resolvers/zod";
-import * as v from "valibot";
-import * as yup from "yup";
-import { z } from "zod";
-import { useToast } from "primevue/usetoast";
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { useToast } from 'primevue/usetoast';
+import InputText from 'primevue/inputtext';
+import Password from 'primevue/password';
+import Button from 'primevue/button';
 
-// Import PrimeVue form components
-import { Form, FormField } from "@primevue/forms";
-import InputText from "primevue/inputtext";
-import InputNumber from "primevue/inputnumber";
-import Password from "primevue/password";
-import Button from "primevue/button";
-import Message from "primevue/message";
+import { auth, createUserWithEmailAndPassword, getIdToken } from '../services/firebase';
+import { updateProfile } from 'firebase/auth';
+import api from '../services/api';
+import { formatSingaporePhone, phoneToEmail } from '../utils/phoneUtils';
 
+const router = useRouter();
 const toast = useToast();
 
-const initialValues = reactive({
-  details: "",
-});
+const firstName = ref('');
+const lastName = ref('');
+const phone = ref('');
+const fin = ref('');
+const password = ref('');
 
-const resolver = zodResolver(
-  z.object({
-    details: z
-      .string()
-      .min(1, { message: "Details is required via Form Resolver." }),
-  })
-);
+const error = ref('');
+const result = ref('');
+const loading = ref(false);
 
-const zodUserNameResolver = zodResolver(
-  z.string().min(1, { message: "Username is required." })
-);
-const yupFirstNameResolver = yupResolver(
-  yup.string().required("First name is required.")
-);
-const valibotLastNameResolver = valibotResolver(
-  v.pipe(v.string(), v.minLength(1, "Last name is required."))
-);
+async function handleSignUp() {
+  error.value = '';
+  result.value = '';
+  loading.value = true;
+  try {
+    if (!phone.value || !password.value || !fin.value) {
+      throw new Error('Phone, FIN and password required');
+    }
+    const formatted = formatSingaporePhone(phone.value);
+    const emailAlias = phoneToEmail(formatted);
+    const finNum = (fin.value || '').trim().toUpperCase();
+    if (finNum.length !== 9) {
+      throw new Error('FIN must be 9 characters');
+    }
 
-const phoneNumberResolver = valibotResolver(
-  v.pipe(
-    v.number("Phone Number must be numeric."), // Custom error message
-    v.minValue(10000000, "Phone Number is too short."), // Example: 8 digits
-    v.maxValue(99999999, "Phone Number is too long.")   // Example: 8 digits
-  )
-);
+    const cred = await createUserWithEmailAndPassword(auth, emailAlias, password.value);
 
-const finNumberResolver = valibotResolver(
-  v.pipe(
-    v.string("FIN Number is required."),
-    v.minLength(9, "FIN Number must be 9 characters."),
-    v.maxLength(9, "FIN Number must be 9 characters."),
-    v.regex(/^[A-Za-z][0-9]{8}$/, "FIN Number must start with a letter followed by 8 digits.")
-  )
-);
+    // Optional display name update
+    const displayName = `${(firstName.value || '').trim()} ${(lastName.value || '').trim()}`.trim();
+    if (displayName) {
+      try {
+        await updateProfile(cred.user, { displayName });
+      } catch (e) {
+        console.warn('updateProfile failed:', e);
+      }
+    }
 
-const customPasswordResolver = ({ value }) => {
-  const errors = [];
-
-  if (!value) {
-    errors.push({ message: "Password is required via Custom." });
-  }
-
-  return {
-    errors,
-  };
-};
-
-const onFormSubmit = ({ valid }) => {
-  if (valid) {
-    toast.add({
-      severity: "success",
-      summary: "Form is submitted.",
-      life: 3000,
+    // Backend provisioning
+    const token = await getIdToken(true);
+    if (!token) throw new Error('No Firebase ID token after signup.');
+    const resp = await api.backendLoginWithIdToken(token, {
+      phoneNumber: formatted,
+      name: displayName || undefined,
+      finNumber: finNum,
     });
+
+    const userLabel = resp.data?.user?.phoneNumber || resp.data?.user?.uid || 'unknown';
+    result.value = `Account created and provisioned: ${userLabel}`;
+    toast.add({ severity: 'success', summary: 'Account created', detail: userLabel, life: 3000 });
+
+    try { router.push('/discover'); } catch {}
+  } catch (e) {
+    let msg = e?.response?.data?.error || e?.message || String(e);
+
+    // Map Firebase duplicate email (email alias from phone) to user-friendly phone message
+    const code = e?.code || '';
+    if (code === 'auth/email-already-in-use' || String(msg).includes('auth/email-already-in-use')) {
+      msg = 'Phone number already in use';
+    }
+
+    error.value = msg;
+    toast.add({ severity: 'error', summary: 'Sign up failed', detail: msg, life: 4000 });
+  } finally {
+    loading.value = false;
   }
-};
+}
 </script>
 
 <style scoped>
-/* Apply same styling to both input types */
-
+/* Incoming design preserved */
 .signup-container {
-  background-image: url("@/assets/workers_background.jpg"); /* use a high-res image */
-  background-size: cover; /* cover whole container */
-  background-position: center; /* center image */
+  background-image: url("@/assets/workers_background.jpg");
+  background-size: cover;
+  background-position: center;
   background-repeat: no-repeat;
-  min-height: 100vh; /* full viewport height */
+  min-height: 100vh;
   width: 100%;
   display: flex;
-  justify-content: center; /* center login box horizontally */
-  align-items: center; /* center login box vertically */
+  justify-content: center;
+  align-items: center;
 }
 
 .signup-box {
   background-color: #ffa600;
   padding: 5rem;
   border-radius: 8px;
-  width: 700px; /* fixed width */
+  width: 700px;
   display: flex;
   height: 800px;
   flex-direction: column;
-  align-items: center; /* keep header + inputs + button centered inside */
+  align-items: center;
   margin-left: 50px;
 }
 
@@ -253,54 +173,67 @@ const onFormSubmit = ({ valid }) => {
 }
 
 .first-name-btn {
-  width: 100%; /* make them full width of parent container */
-  min-height: 2.5rem; /* set a consistent height */
+  width: 100%;
+  min-height: 2.5rem;
   font-size: 1rem;
-  box-sizing: border-box; /* include padding in height */
+  box-sizing: border-box;
   margin-top: 3rem;
   margin-left: 0.2rem;
 }
 
 .last-name-btn {
-  width: 100%; /* make them full width of parent container */
-  min-height: 2.5rem; /* set a consistent height */
+  width: 100%;
+  min-height: 2.5rem;
   font-size: 1rem;
-  box-sizing: border-box; /* include padding in height */
+  box-sizing: border-box;
   margin-top: 3rem;
   margin-left: 0.2rem;
 }
 
 .phone-number-btn {
-  width: 100%; /* make them full width of parent container */
-  min-height: 2.5rem; /* set a consistent height */
+  width: 100%;
+  min-height: 2.5rem;
   font-size: 1rem;
-  box-sizing: border-box; /* include padding in height */
+  box-sizing: border-box;
   margin-top: 3rem;
   margin-left: 0.2rem;
 }
 
 .FIN-number-btn {
-  width: 100%; /* make them full width of parent container */
-  min-height: 2.5rem; /* set a consistent height */
+  width: 100%;
+  min-height: 2.5rem;
   font-size: 1rem;
-  box-sizing: border-box; /* include padding in height */
+  box-sizing: border-box;
   margin-top: 3rem;
   margin-left: 0.2rem;
 }
 
 .password-btn {
-  width: 100%; /* make them full width of parent container */
-  min-height: 2.5rem; /* set a consistent height */
+  width: 100%;
+  min-height: 2.5rem;
   font-size: 1rem;
-  box-sizing: border-box; /* include padding in height */
+  box-sizing: border-box;
   margin-top: 3rem;
   margin-left: 0.2rem;
 }
+
 .submit-btn {
   color: #ffc67b;
   font-family: "Poppins", "sans-serif";
   width: 50%;
   margin-right: 0.5rem;
   margin-top: 10%;
+}
+
+.error {
+  color: #b00020;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.ok {
+  color: #1b5e20;
+  font-weight: 600;
+  margin-top: 8px;
 }
 </style>

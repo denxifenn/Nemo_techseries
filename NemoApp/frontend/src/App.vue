@@ -6,17 +6,9 @@
   </div>
 </template>
 
-<!-- <script>
-export default {
-  name: 'App',
-}
-</script> -->
-
 <script setup>
 import Toast from 'primevue/toast';
-
 import NavBar from './components/NavBar.vue';
-
 </script>
 
 <style>
@@ -24,9 +16,8 @@ import NavBar from './components/NavBar.vue';
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-align: center;
+  text-align: left;
   color: #2c3e50;
   margin-top: 60px;
 }
-
 </style>

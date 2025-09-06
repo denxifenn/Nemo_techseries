@@ -3,119 +3,96 @@
         <div class="login-box">
             <h1 class="login-header">Login To Your Account!</h1>
             <div>
-                <Form
-                    :resolver="resolver"
-                    @submit="onFormSubmit"
-                    class="flex flex-col gap-4 w-full sm:w-56"
-                >
-                    <!-- PHONE Number -->
-                    <div class="auth-field">
-                        <FormField
-                            v-slot="$field"
-                            as="section"
-                            name="username"
-                            initialValue=""
-                            class="flex flex-col gap-2"
-                        >
-                            <InputText
-                                v-model="$field.value"
-                                type="text"
-                                placeholder="Phone Number"
-                                class="auth-input-username"
-                            />
-                            <Message
-                                v-if="$field?.invalid"
-                                severity="error"
-                                size="small"
-                                variant="simple"
-                            >
-                                {{ $field.error?.message }}
-                            </Message>
-                        </FormField>
+                <!-- Keep incoming UI/UX, wire to backend auth -->
+                <section class="auth-field">
+                    <InputText
+                        v-model="phone"
+                        type="text"
+                        placeholder="Phone Number"
+                        class="auth-input-username"
+                    />
+                    <Password
+                        v-model="password"
+                        type="text"
+                        placeholder="Password"
+                        :feedback="false"
+                        toggleMask
+                        fluid
+                        class="auth-input-password"
+                    />
+                </section>
 
-                        <!-- PASSWORD -->
-                        <FormField v-slot="$field" asChild name="password" initialValue="">
-                            <section class="flex flex-col gap-2">
-                                <Password
-                                    v-model="$field.value"
-                                    type="text"
-                                    placeholder="Password"
-                                    :feedback="false"
-                                    toggleMask
-                                    fluid
-                                    class="auth-input-password"
-                                />
-                                <Message
-                                    v-if="$field?.invalid"
-                                    severity="error"
-                                    size="small"
-                                    variant="simple"
-                                >
-                                    {{ $field.error?.message }}
-                                </Message>
-                            </section>
-                        </FormField>
-                    </div>
-
-                    <div class="buttons">
-                        <Button
-                            type="button"
-                            severity="secondary"
-                            label="Login"
-                            class="auth-login-btn"
-                            @click="handleLogin"
-                        />
-                        <Button
-                            type="button"
-                            severity="secondary"
-                            label="Sign Up"
-                            class="auth-signup-btn"
-                            @click="handleSignup"
-                        />
-                    </div>
-                </Form>
+                <div class="buttons">
+                    <Button
+                        type="button"
+                        severity="secondary"
+                        label="Login"
+                        class="auth-login-btn"
+                        @click="handleLogin"
+                    />
+                    <Button
+                        type="button"
+                        severity="secondary"
+                        label="Sign Up"
+                        class="auth-signup-btn"
+                        @click="handleSignup"
+                    />
+                </div>
             </div>
         </div>
     </div>
 </template>
 
 <script setup>
-import { reactive, ref } from "vue";
-import { zodResolver } from "@primevue/forms/resolvers/zod";
-import { z } from "zod";
-import { useToast } from "primevue/usetoast";
-import { Form, FormField } from "@primevue/forms";
-import InputText from "primevue/inputtext";
-import Password from "primevue/password";
-import Button from "primevue/button";
-import Message from "primevue/message";
-import { useRouter } from "vue-router";
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { useToast } from 'primevue/usetoast';
+import InputText from 'primevue/inputtext';
+import Password from 'primevue/password';
+import Button from 'primevue/button';
 
-const toast = useToast();
+// Use centralized auth store
+import { useAuthStore } from '../stores/auth';
+
 const router = useRouter();
+const toast = useToast();
+const auth = useAuthStore();
 
-const resolver = zodResolver(
-    z.object({
-        username: z.string().min(1, { message: "Username is required." }),
-        password: z.string().min(1, { message: "Password is required." }),
-    })
-);
+const phone = ref('');
+const password = ref('');
 
-const onFormSubmit = (data) => {
-    // This will be called when form validation passes
-    console.log("Form submitted with data:", data);
-};
+async function handleLogin() {
+  try {
+    if (!phone.value || !password.value) {
+      throw new Error('Phone and password required');
+    }
 
-const handleLogin = () => {
-    router.push({ name: "Discover" });
-};
+    const result = await auth.login(phone.value, password.value);
+    if (!result?.success) {
+      throw new Error(result?.error || 'Login failed');
+    }
 
-const handleSignup = () => {
-    router.push({ name: "SignUp" });
-};
+    toast.add({ severity: 'success', summary: 'Login success', detail: phone.value, life: 3000 });
+
+    // If profile not completed, force completion flow
+    if (auth.needsProfileCompletion) {
+      try { router.push('/profile-completion'); } catch {}
+    } else {
+      try { router.push('/discover'); } catch {}
+    }
+  } catch (e) {
+    let detail = e?.response?.data?.error || e?.message || String(e);
+    toast.add({ severity: 'error', summary: 'Login failed', detail, life: 4000 });
+  }
+}
+
+function handleSignup() {
+  router.push({ name: 'SignUp' });
+}
 </script>
 
 <style scoped>
+/* Preserve incoming design */
 .login-container { 
     background-image: url('@/assets/workers_background.jpg');
     background-size: cover;

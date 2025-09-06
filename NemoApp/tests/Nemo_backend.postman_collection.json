@@ -1,0 +1,223 @@
+{
+  "info": {
+    "_postman_id": "e6c3bda3-6b91-4e96-bb36-5f30b2f2a9a1",
+    "name": "Nemo Backend (MVP)",
+    "description": "Postman collection to test Nemo backend APIs end-to-end.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "token", "value": "" },
+    { "key": "adminToken", "value": "" },
+    { "key": "eventId", "value": "" },
+    { "key": "requestId", "value": "" },
+    { "key": "web_api_key", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "01 Auth - Register (DEPRECATED - use Firebase Auth frontend)",
+      "disabled": true,
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"you@example.com\",\n  \"password\": \"Password123!\",\n  \"name\": \"Your Name\"\n}"
+        }
+      }
+    },
+    {
+      "name": "01 Auth - REST SignIn (Firebase) → get idToken",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={{web_api_key}}",
+          "protocol": "https",
+          "host": ["identitytoolkit","googleapis","com"],
+          "path": ["v1", "accounts:signInWithPassword"],
+          "query": [{ "key": "key", "value": "{{web_api_key}}" }]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"you@example.com\",\n  \"password\": \"Password123!\",\n  \"returnSecureToken\": true\n}"
+        },
+        "description": "Copy the idToken from the response and set it into the collection variable `token` (and `adminToken` for admin)."
+      }
+    },
+    {
+      "name": "01 Auth - Verify Token",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/auth/verify", "host": ["{{baseUrl}}"], "path": ["api", "auth", "verify"] }
+      }
+    },
+    {
+      "name": "02 Events - List",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/api/events", "host": ["{{baseUrl}}"], "path": ["api", "events"] }
+      }
+    },
+    {
+      "name": "02 Events - Get By Id",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/api/events/{{eventId}}", "host": ["{{baseUrl}}"], "path": ["api", "events", "{{eventId}}"] }
+      }
+    },
+    {
+      "name": "03 Bookings - Individual",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/bookings/individual", "host": ["{{baseUrl}}"], "path": ["api", "bookings", "individual"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"eventId\": \"{{eventId}}\"\n}"
+        }
+      }
+    },
+    {
+      "name": "03 Bookings - Group (names)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/bookings/group", "host": ["{{baseUrl}}"], "path": ["api", "bookings", "group"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"groupMemberNames\": [\"Alice\", \"Bob\"]\n}"
+        }
+      }
+    },
+    {
+      "name": "03 Bookings - My Bookings",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/bookings/my", "host": ["{{baseUrl}}"], "path": ["api", "bookings", "my"] }
+      }
+    },
+    {
+      "name": "04 Profile - Get",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/profile", "host": ["{{baseUrl}}"], "path": ["api", "profile"] }
+      }
+    },
+    {
+      "name": "04 Profile - Update",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/profile", "host": ["{{baseUrl}}"], "path": ["api", "profile"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"New Name\"\n}"
+        }
+      }
+    },
+    {
+      "name": "05 Friends - Send Request (by email)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/friends/request", "host": ["{{baseUrl}}"], "path": ["api", "friends", "request"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"friend@example.com\"\n}"
+        }
+      }
+    },
+    {
+      "name": "05 Friends - Handle Request (accept/reject)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/friends/request/{{requestId}}", "host": ["{{baseUrl}}"], "path": ["api", "friends", "request", "{{requestId}}"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"action\": \"accept\"\n}"
+        }
+      }
+    },
+    {
+      "name": "05 Friends - List",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/friends", "host": ["{{baseUrl}}"], "path": ["api", "friends"] }
+      }
+    },
+    {
+      "name": "06 Admin - Create Event",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/admin/events", "host": ["{{baseUrl}}"], "path": ["api", "admin", "events"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Community Football\",\n  \"description\": \"Friendly match\",\n  \"category\": \"sports\",\n  \"location\": \"Kallang\",\n  \"date\": \"2025-12-31\",\n  \"time\": \"14:00\",\n  \"maxParticipants\": 20\n}"
+        }
+      }
+    },
+    {
+      "name": "07 Suggestions - Submit (text)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/suggestions", "host": ["{{baseUrl}}"], "path": ["api", "suggestions"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"text\": \"Any feedback or suggestions for future events...\"\n}"
+        }
+      }
+    },
+    {
+      "name": "07 Suggestions - Admin List",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/suggestions", "host": ["{{baseUrl}}"], "path": ["api", "suggestions"] }
+      }
+    }
+  ]
+}

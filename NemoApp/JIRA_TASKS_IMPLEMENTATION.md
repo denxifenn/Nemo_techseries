@@ -121,35 +121,47 @@ admins/{adminId}
 
 ### Authentication Tasks
 
-#### KAN-7: Create Login Function + API
-**Backend Implementation**:
+#### KAN-7: Create Login Function + API (frontend signup only)
+Backend does not handle raw passwords. Users sign up and sign in on the frontend using Firebase Auth (email/password). The backend accepts an ID token and verifies it, auto-provisioning the user profile on first login.
+
 ```python
 # backend/api/auth.py
 from flask import Blueprint, request, jsonify
-from services.firebase_service import auth, db
+from services.firebase_service import FirebaseService
 
 auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route('/api/auth/login', methods=['POST'])
 def login():
-    data = request.json
-    email = data.get('email')
-    password = data.get('password')
-    
-    # Firebase handles authentication
-    # Return token to frontend
-    return jsonify({"message": "Login endpoint", "email": email})
+    """Frontend sends { idToken } from Firebase Auth; backend verifies and returns user profile."""
+    data = request.get_json() or {}
+    id_token = data.get('idToken')
+    if not id_token:
+        return jsonify({'success': False, 'error': 'Missing idToken'}), 400
 
-@auth_bp.route('/api/auth/register', methods=['POST'])
-def register():
-    data = request.json
-    email = data.get('email')
-    password = data.get('password')
-    name = data.get('name')
-    
-    # Create user in Firebase Auth
-    # Add user details to Firestore
-    return jsonify({"message": "Register endpoint"})
+    uid = FirebaseService.verify_token(id_token)
+    if not uid:
+        return jsonify({'success': False, 'error': 'Invalid token'}), 401
+
+    # Auto-create user doc if missing
+    user = FirebaseService.ensure_user_doc(uid)
+    return jsonify({'success': True, 'user': {
+        'uid': user.get('uid') or uid,
+        'email': user.get('email'),
+        'name': user.get('name'),
+        'role': user.get('role', 'user')
+    }}), 200
+
+@auth_bp.route('/api/auth/verify', methods=['GET'])
+def verify_token():
+    """Verify if token is valid"""
+    token = request.headers.get('Authorization', '').replace('Bearer ', '')
+    if not token:
+        return jsonify({'valid': False}), 401
+    uid = FirebaseService.verify_token(token)
+    if not uid:
+        return jsonify({'valid': False}), 401
+    return jsonify({'valid': True, 'uid': uid}), 200
 ```
 
 #### KAN-14: Login Page
@@ -502,6 +514,7 @@ def create_event():
         <option value="sports">Sports</option>
         <option value="workshop">Workshop</option>
         <option value="social">Social</option>
+        <option value="cultural">Cultural</option>
       </select>
       <input v-model="event.location" placeholder="Location" required>
       <input v-model="event.date" type="date" required>
@@ -515,54 +528,48 @@ def create_event():
 
 ### Suggestions Tasks
 
-#### KAN-20: Suggest An Event Page (Normal User)
+#### KAN-20: Suggest Something Page (Normal User)
 ```vue
 <!-- frontend/src/views/SuggestEventPage.vue -->
 <template>
   <div class="suggest-event">
-    <h2>Suggest an Event</h2>
+    <h2>Send a Suggestion</h2>
     <form @submit.prevent="submitSuggestion">
-      <input v-model="suggestion.title" placeholder="Event Title" required>
-      <textarea v-model="suggestion.description" placeholder="Describe your event idea" required></textarea>
-      <select v-model="suggestion.category">
-        <option value="sports">Sports</option>
-        <option value="workshop">Workshop</option>
-        <option value="social">Social</option>
-      </select>
+      <textarea v-model="text" placeholder="Any feedback or suggestions for future events..." required></textarea>
       <button type="submit">Submit Suggestion</button>
     </form>
   </div>
 </template>
 ```
 
-#### KAN-23: Create Leave Your Suggestions Below + API
-**Backend**:
+#### KAN-23: Submit Suggestions + API
+**Backend** (free-text only, admin list):
 ```python
 @suggestions_bp.route('/api/suggestions', methods=['POST'])
-def create_suggestion():
-    data = request.json
-    suggestion = {
-        'userId': data['userId'],
-        'eventTitle': data['title'],
-        'eventDescription': data['description'],
-        'category': data['category'],
-        'status': 'pending',
-        'createdAt': firestore.SERVER_TIMESTAMP
-    }
-    db.collection('suggestions').add(suggestion)
-    return jsonify({"message": "Suggestion submitted successfully"})
+@require_auth
+def create_suggestion(current_user):
+    data = request.get_json(silent=True) or {}
+    text = (data.get('text') or '').strip()
+    if not text:
+        return jsonify({'success': False, 'error': 'Missing text'}), 400
+    ref = db.collection('suggestions').add({
+        'userId': current_user,
+        'text': text,
+        'createdAt': admin_fs.SERVER_TIMESTAMP
+    })[1]
+    return jsonify({'success': True, 'suggestionId': ref.id, 'message': 'Suggestion submitted'}), 201
 
 @suggestions_bp.route('/api/suggestions', methods=['GET'])
-def get_suggestions():
-    # Admin only endpoint
-    suggestions = []
-    for doc in db.collection('suggestions').stream():
-        suggestion = doc.to_dict()
-        suggestion['id'] = doc.id
-        suggestions.append(suggestion)
-    return jsonify(suggestions)
+@require_admin
+def get_suggestions(current_user):
+    out = []
+    for doc in db.collection('suggestions').order_by('createdAt', direction=admin_fs.Query.DESCENDING).stream():
+        s = doc.to_dict() or {}
+        s['id'] = doc.id
+        out.append(s)
+    return jsonify({'success': True, 'suggestions': out}), 200
 ```
-
+## Ignored at the moment
 ## Implementation Priority Order
 
 ### Phase 1: Foundation (Days 1-3)
