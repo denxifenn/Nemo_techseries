@@ -73,7 +73,7 @@ export default {
       {
         id: 3,
         title: 'Virtual Cooking Class',
-        date: 'Sept 18, 2025',
+        date: 'Oct 18, 2024',
         startTime: '6:00 PM',
         endTime: '8:00 PM',
         location: 'Online',
@@ -85,7 +85,7 @@ export default {
         type: 'workshop',
         region: 'North',
         price: 50,
-        image: 'https://images.unsplash.com/photo-1544325718-488a5064cfeb?q=80&w=1172&auto=format&fit=crop'
+        image: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?q=80&w=1170&auto=format&fit=crop'
       },
       {
         id: 4,
@@ -175,10 +175,10 @@ export default {
       {
         id: 9,
         title: 'Digital Photography Workshop',
-        date: 'Nov 12, 2024',
+        date: 'Nov 12, 2025',
         startTime: '10:00 AM',
         endTime: '4:00 PM',
-        location: 'Woodlands CC',
+        location: 'Community Center',
         organiser: 'Photo Academy',
         status: 'active',
         bookingSlots: 25,
@@ -191,32 +191,32 @@ export default {
       },
       {
         id: 10,
-        title: 'Heritage Walking Tour',
+        title: 'Historic City Walking Tour',
         date: 'Nov 15, 2025',
         startTime: '9:00 AM',
         endTime: '12:00 PM',
-        location: 'Changi',
+        location: 'Old Town Square',
         organiser: 'Heritage Tours',
         status: 'active',
         bookingSlots: 40,
-        description: 'Explore the city\'s rich heritage with a knowledgeable local guide.',
+        description: 'Explore the city\'s rich history with a knowledgeable local guide.',
         format: 'outdoor',
         type: 'tours',
-        region: 'East',
+        region: 'Central',
         price: 75,
         image: 'https://images.unsplash.com/photo-1654738366489-8e50a99e0469?q=80&w=1176&auto=format&fit=crop'
       },
       {
         id: 11,
         title: 'Beach Volleyball Championship',
-        date: 'Nov 17, 2025',
+        date: 'Nov 18, 2024',
         startTime: '8:00 AM',
         endTime: '6:00 PM',
-        location: 'Palawan Beach',
+        location: 'Sunny Beach Resort',
         organiser: 'Volleyball Association',
         status: 'active',
         bookingSlots: 200,
-        description: 'Annual beach volleyball tournament.',
+        description: 'Annual beach volleyball tournament with teams from across the region.',
         format: 'outdoor',
         type: 'sports',
         region: 'South',
@@ -226,7 +226,7 @@ export default {
       {
         id: 12,
         title: 'International Food Festival',
-        date: 'Nov 22, 2025',
+        date: 'Nov 22, 2024',
         startTime: '11:00 AM',
         endTime: '9:00 PM',
         location: 'Riverside Park',
@@ -444,7 +444,7 @@ export default {
                   <span class="event-date">{{ event.date }} at {{ event.startTime }} - {{ event.endTime }}</span>
                   <span class="event-location"><span class="material-symbols-outlined">location_on</span> {{ event.location }}</span>
                   <span class="event-organiser"><span class="material-symbols-outlined">person</span> {{ event.organiser }}</span>
-                  <span class="event-slots"><span class="material-symbols-outlined">confirmation_number</span>  {{ event.bookingSlots }}</span>
+                  <!-- <span class="event-slots"><span class="material-symbols-outlined">confirmation_number</span>  {{ event.bookingSlots }}</span> -->
                   <span class="event-price"><span class="material-symbols-outlined">attach_money</span>  {{ event.price }}</span>
                   <!-- <span class="event-organiser">👤 {{ event.organiser }}</span> -->
                   <!-- <span class="event-slots">🎫 {{ event.bookingSlots }}</span> -->

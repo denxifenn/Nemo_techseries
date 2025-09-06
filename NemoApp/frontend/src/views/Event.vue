@@ -93,7 +93,6 @@
           <div class="booking-card">
             <div class="price-section">
               <div class="price-label">Event Registration</div>
-              <div class="price-value">Free Event</div>
             </div>
             
             <Button 
@@ -101,7 +100,7 @@
               @click="handleBooking"
               :loading="isBooking"
             >
-              <i class="pi pi-ticket"></i>
+              
               <span>Register Now</span>
             </Button>
 
@@ -119,7 +118,9 @@
           <div class="organizer-card">
             <h3>Event Organiser</h3>
             <div class="organizer-info">
-              <img src="https://via.placeholder.com/60x60/ff6b35/white?text=ORG" alt="Organizer" class="organizer-avatar">
+              <div class="organizer-avatar">
+                <span class="material-symbols-outlined">person</span>
+              </div>
               <div class="organizer-details">
                 <h4>Sports Center Management</h4>
               </div>
@@ -216,7 +217,7 @@ export default {
           {
             id: 1,
             title: 'Basketball Tournament',
-            date: 'Oct 15, 2024',
+            date: 'Oct 15, 2025',
             location: 'Sports Center',
             description: 'Annual basketball tournament for all skill levels.',
             format: 'indoor',
@@ -227,13 +228,13 @@ export default {
           {
             id: 2,
             title: 'Art Exhibition',
-            date: 'Oct 20, 2024',
+            date: 'Oct 20, 2025',
             location: 'Gallery Downtown',
             description: 'Unique art exhibition featuring local artists.',
             format: 'indoor',
             type: 'arts',
             region: 'South',
-            image: 'https://via.placeholder.com/300x200'
+            image: 'https://images.unsplash.com/photo-1518998053901-5348d3961a04?q=80&w=1074&auto=format&fit=crop'
           },
           {
             id: 3,
@@ -244,84 +245,84 @@ export default {
             format: 'online',
             type: 'workshop',
             region: 'North',
-            image: 'https://via.placeholder.com/300x200'
+            image: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?q=80&w=1170&auto=format&fit=crop'
           },
           {
             id: 4,
             title: 'Outdoor Yoga',
-            date: 'Oct 22, 2024',
+            date: 'Oct 22, 2025',
             location: 'Central Park',
             description: 'Morning yoga session in the park.',
             format: 'outdoor',
             type: 'sports',
             region: 'Central',
-            image: 'https://via.placeholder.com/300x200'
+            image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400&h=250&fit=crop'
           },
           {
             id: 5,
             title: 'Music Festival',
-            date: 'Oct 25, 2024',
+            date: 'Oct 25, 2025',
             location: 'City Park',
             description: 'Two-day music festival featuring various artists.',
             format: 'outdoor',
             type: 'music',
             region: 'West',
-            image: 'https://via.placeholder.com/300x200'
+            image: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=400&h=250&fit=crop'
           },
           {
             id: 6,
             title: 'Tech Webinar',
-            date: 'Oct 30, 2024',
+            date: 'Oct 30, 2025',
             location: 'Online',
             description: 'Learn about the latest technology trends.',
             format: 'online',
             type: 'workshop',
             region: 'East',
-            image: 'https://via.placeholder.com/300x200'
+            image: 'https://images.unsplash.com/photo-1550622824-c11e494a4b65?q=80&w=1173&auto=format&fit=crop'
           },
           {
             id: 7,
             title: 'Jazz Night Live',
-            date: 'Nov 5, 2024',
+            date: 'Nov 5, 2025',
             location: 'Blue Note Jazz Club',
             description: 'An evening of smooth jazz with local and international artists.',
             format: 'indoor',
             type: 'music',
             region: 'Central',
-            image: 'https://via.placeholder.com/300x200'
+            image: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=250&fit=crop'
           },
           {
             id: 8,
             title: 'Modern Dance Performance',
-            date: 'Nov 8, 2024',
+            date: 'Nov 8, 2025',
             location: 'City Theater',
             description: 'Contemporary dance showcase featuring innovative choreography.',
             format: 'indoor',
             type: 'performance',
             region: 'West',
-            image: 'https://via.placeholder.com/300x200'
+            image: 'https://images.unsplash.com/photo-1499439398383-cfcbab21207d?q=80&w=1176&auto=format&fit=crop'
           },
           {
             id: 9,
             title: 'Digital Photography Workshop',
-            date: 'Nov 12, 2024',
+            date: 'Nov 12, 2025',
             location: 'Community Center',
             description: 'Hands-on workshop covering composition, lighting, and editing techniques.',
             format: 'indoor',
             type: 'workshop',
             region: 'North',
-            image: 'https://via.placeholder.com/300x200'
+            image: 'https://images.unsplash.com/photo-1548502499-ef49e8cf98d4?q=80&w=1170&auto=format&fit=crop'
           },
           {
             id: 10,
             title: 'Historic City Walking Tour',
-            date: 'Nov 15, 2024',
+            date: 'Nov 15, 2025',
             location: 'Old Town Square',
             description: 'Explore the city\'s rich history with a knowledgeable local guide.',
             format: 'outdoor',
             type: 'tours',
             region: 'Central',
-            image: 'https://via.placeholder.com/300x200'
+            image: 'https://images.unsplash.com/photo-1654738366489-8e50a99e0469?q=80&w=1176&auto=format&fit=crop'
           },
           {
             id: 11,
@@ -332,7 +333,7 @@ export default {
             format: 'outdoor',
             type: 'sports',
             region: 'South',
-            image: 'https://via.placeholder.com/300x200'
+            image: 'https://images.unsplash.com/photo-1592656094267-764a45160876?q=80&w=1170&auto=format&fit=crop'
           },
           {
             id: 12,
@@ -343,7 +344,7 @@ export default {
             format: 'outdoor',
             type: 'culture',
             region: 'East',
-            image: 'https://via.placeholder.com/300x200'
+            image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=250&fit=crop'
           }
         ];
 
@@ -633,6 +634,12 @@ export default {
   height: 60px;
   border-radius: 50%;
   border: 2px solid #ff6b35;
+  background: linear-gradient(135deg, #ff6b35, #ff8c42);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 2rem;
 }
 
 .organizer-details h4 {
