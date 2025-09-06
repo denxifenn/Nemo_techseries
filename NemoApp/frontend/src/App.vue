@@ -1,12 +1,6 @@
 <template>
   <div id="app">
-    <nav class="topnav">
-      <router-link to="/api-tester">API Tester</router-link>
-      <span class="spacer"></span>
-      <router-link to="/login">Login</router-link>
-      <router-link to="/signup">Sign Up</router-link>
-      <router-link to="/discover">Discover</router-link>
-    </nav>
+    <NavBar/>
     <router-view />
     <Toast />
   </div>
@@ -14,6 +8,7 @@
 
 <script setup>
 import Toast from 'primevue/toast';
+import NavBar from './components/NavBar.vue';
 </script>
 
 <style>
@@ -24,27 +19,5 @@ import Toast from 'primevue/toast';
   text-align: left;
   color: #2c3e50;
   margin-top: 60px;
-}
-
-.topnav {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  padding: 8px 12px;
-  background: #f6f6f6;
-  border-bottom: 1px solid #ddd;
-}
-
-.topnav a {
-  text-decoration: none;
-  color: #1976d2;
-  font-weight: 600;
-}
-
-.topnav .spacer {
-  flex: 1;
 }
 </style>

@@ -9,63 +9,22 @@ import Profile from '../views/Profile.vue'
 import Friends from '../views/Friends.vue'
 import FriendInfo from '../views/FriendInfo.vue'
 import ApiTester from '../views/ApiTester.vue'
+import MyBookings from '../views/MyBookings.vue'
 
 const routes = [
-  {
-    path: '/',
-    redirect: '/login'
-  },
-  {
-    path: '/login',
-    name: 'Login',
-    component: Login
-  },
-  {
-    path: '/signup',
-    name: 'SignUp',
-    component: SignUp
-  },
-  {
-    path: '/discover',
-    name: 'Discover',
-    component: Discover
-  },
-  {
-    path: '/event',
-    name: 'Event',
-    component: Event
-  },
-  {
-    path: '/event-creation',
-    name: 'EventCreation',
-    component: EventCreation
-  },
-  {
-    path: '/event-suggestion',
-    name: 'EventSuggestion',
-    component: EventSuggestion
-  },
-  {
-    path: '/profile',
-    name: 'Profile',
-    component: Profile
-  },
-  {
-    path: '/friends',
-    name: 'Friends',
-    component: Friends
-  },
-  {
-    path: '/friend-info',
-    name: 'FriendInfo',
-    component: FriendInfo
-  },
-  {
-    path: '/api-tester',
-    name: 'ApiTester',
-    component: ApiTester
-  }
-]
+  { path: '/', redirect: '/login' },
+  { path: '/login', name: 'Login', component: Login },
+  { path: '/signup', name: 'SignUp', component: SignUp },
+  { path: '/discover', name: 'Discover', component: Discover },
+  { path: '/event/:eventId', name: 'Event', component: Event, props: true },
+  { path: '/event-creation', name: 'EventCreation', component: EventCreation },
+  { path: '/event-suggestion', name: 'EventSuggestion', component: EventSuggestion },
+  { path: '/profile', name: 'Profile', component: Profile },
+  { path: '/friends', name: 'Friends', component: Friends },
+  { path: '/friend-info', name: 'FriendInfo', component: FriendInfo },
+  { path: '/api-tester', name: 'ApiTester', component: ApiTester },
+  { path: '/my-bookings', name: 'MyBookings', component: MyBookings },
+];
 
 const router = createRouter({
   history: createWebHistory(),

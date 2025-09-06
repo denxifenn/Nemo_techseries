@@ -1,43 +1,56 @@
 <template>
-  <div class="login">
-    <h1>Login</h1>
+    <div class="login-container">
+        <div class="login-box">
+            <h1 class="login-header">Login To Your Account!</h1>
+            <div>
+                <!-- Keep incoming UI/UX, wire to backend auth -->
+                <section class="auth-field">
+                    <InputText
+                        v-model="phone"
+                        type="text"
+                        placeholder="Phone Number"
+                        class="auth-input-username"
+                    />
+                    <Password
+                        v-model="password"
+                        type="text"
+                        placeholder="Password"
+                        :feedback="false"
+                        toggleMask
+                        fluid
+                        class="auth-input-password"
+                    />
+                </section>
 
-    <section class="panel">
-      <div class="row">
-        <label>Phone Number (+65)</label>
-        <input
-          v-model="phone"
-          type="tel"
-          inputmode="numeric"
-          pattern="[0-9]*"
-          placeholder="91234567"
-          aria-label="Singapore phone number without +65"
-        />
-      </div>
-      <div v-if="phone && !isPhoneValid" class="error">Enter 8-digit Singapore number (auto +65 applied)</div>
-      <div class="row">
-        <label>Password</label>
-        <input v-model="password" type="password" placeholder="Password123!" />
-      </div>
-      <div class="row">
-        <button @click="doFirebaseLogin" :disabled="loading || !isPhoneValid || !password">Sign In</button>
-        <button @click="goTester">Open API Tester</button>
-      </div>
-      <div v-if="error" class="error">{{ error }}</div>
-      <div v-if="result" class="ok">{{ result }}</div>
-    </section>
-
-    <section class="info">
-      <p>Tip: After login, your profile is provisioned automatically.</p>
-      <router-link to="/signup">No account? Sign up</router-link>
-    </section>
-  </div>
+                <div class="buttons">
+                    <Button
+                        type="button"
+                        severity="secondary"
+                        label="Login"
+                        class="auth-login-btn"
+                        @click="handleLogin"
+                    />
+                    <Button
+                        type="button"
+                        severity="secondary"
+                        label="Sign Up"
+                        class="auth-signup-btn"
+                        @click="handleSignup"
+                    />
+                </div>
+            </div>
+        </div>
+    </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
+import InputText from 'primevue/inputtext';
+import Password from 'primevue/password';
+import Button from 'primevue/button';
+
 import { auth, signInWithEmailAndPassword, getIdToken } from '../services/firebase';
 import api from '../services/api';
 import { formatSingaporePhone, phoneToEmail } from '../utils/phoneUtils';
@@ -47,39 +60,25 @@ const toast = useToast();
 
 const phone = ref('');
 const password = ref('');
-const error = ref('');
-const result = ref('');
-const loading = ref(false);
-const isPhoneValid = computed(() => {
-  try {
-    formatSingaporePhone(phone.value);
-    return true;
-  } catch {
-    return false;
-  }
-});
 
-async function doFirebaseLogin() {
-  error.value = '';
-  result.value = '';
-  loading.value = true;
+async function handleLogin() {
   try {
-    if (!phone.value || !password.value) throw new Error('Phone and password required');
+    if (!phone.value || !password.value) {
+      throw new Error('Phone and password required');
+    }
     const formatted = formatSingaporePhone(phone.value);
     const emailAlias = phoneToEmail(formatted);
-    const cred = await signInWithEmailAndPassword(auth, emailAlias, password.value);
 
-    // Immediately perform backend login/provisioning
+    await signInWithEmailAndPassword(auth, emailAlias, password.value);
+
+    // Backend login/provisioning with Firebase ID token
     const token = await getIdToken(true);
     if (!token) throw new Error('No Firebase ID token. Sign in first.');
     const name = auth.currentUser?.displayName || undefined;
-    const resp = await api.backendLoginWithIdToken(token, { phoneNumber: formatted, name });
 
-    const userLabel = resp.data?.user?.phoneNumber || resp.data?.user?.uid || 'unknown';
-    result.value = `Login success: ${userLabel}`;
-    toast.add({ severity: 'success', summary: 'Login success', detail: userLabel, life: 3000 });
+    await api.backendLoginWithIdToken(token, { phoneNumber: formatted, name });
 
-    // Optional: navigate to the main page after successful login
+    toast.add({ severity: 'success', summary: 'Login success', detail: formatted, life: 3000 });
     try { router.push('/discover'); } catch {}
   } catch (e) {
     let detail = e?.response?.data?.error || e?.message || String(e);
@@ -93,68 +92,90 @@ async function doFirebaseLogin() {
     } else if (code === 'auth/invalid-email') {
       detail = 'Invalid phone alias generated. Please check the phone number format.';
     }
-    error.value = detail;
-    toast.add({ severity: 'error', summary: 'Login failed', detail: detail, life: 4000 });
-  } finally {
-    loading.value = false;
+    toast.add({ severity: 'error', summary: 'Login failed', detail, life: 4000 });
   }
 }
 
-
-function goTester() {
-  router.push('/api-tester');
+function handleSignup() {
+  router.push({ name: 'SignUp' });
 }
 </script>
 
 <style scoped>
-.login {
-  max-width: 540px;
-  margin: 30px auto;
-  padding: 0 16px 32px 16px;
-  text-align: left;
+/* Preserve incoming design */
+.login-container { 
+    background-image: url('@/assets/workers_background.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    min-height: 100vh;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-.panel {
-  border: 1px solid #ddd;
-  padding: 12px;
-  border-radius: 8px;
-  background: #fafafa;
+.auth-input-username {
+    width: 100%;
+    min-height: 2.5rem;
+    font-size: 1rem;
+    box-sizing: border-box;
+    margin-top: 3rem;
+    margin-left: 0.2rem;
 }
 
-.row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin: 8px 0;
+.auth-input-password {
+    margin-top: 3rem;
+    width: 100%;
+    min-height: 2.5rem;
+    font-size: 1rem;
+    box-sizing: border-box;
+    margin-left: 0.2rem;
 }
 
-.row label {
-  min-width: 100px;
+.auth-login-btn {
+    margin-top: 3rem;
+    width: 8rem;
+    height: 4rem;
+    color: black;
+    background: #FFC67B;
+    font-family: 'Poppins', sans-serif;
+    margin-right: 0.5rem;
 }
 
-.row input {
-  flex: 1;
-  padding: 6px 8px;
+.login-header {
+    color: #1c1102; 
+    text-align: center;
+    font-size: 2rem;
+    font-family: 'Poppins', sans-serif;
+    margin-top: 1rem;
 }
 
-.row button {
-  padding: 6px 12px;
+.login-box {
+    background-color: white;
+    padding: 5rem;
+    border-radius: 8px;
+    width: 600px;
+    display: flex;
+    height: 700px;
+    flex-direction: column;
+    align-items: center;
+    margin-left: 50px;  
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-.error {
-  color: #b00020;
-  font-weight: 600;
-  margin-top: 8px;
+.auth-signup-btn {
+    margin-top: 1rem;
+    width: 8rem;
+    height: 4rem;
+    color: rgb(255, 255, 255);
+    background: #ffa114;
+    font-family: 'Poppins', sans-serif;
 }
 
-.ok {
-  color: #1b5e20;
-  font-weight: 600;
-  margin-top: 8px;
-}
-
-.info {
-  margin-top: 16px;
-  font-size: 14px;
+.form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 </style>
