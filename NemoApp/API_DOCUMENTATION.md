@@ -435,6 +435,34 @@ Headers: Authorization: Bearer <token>
 }
 ```
 
+#### Get Pending Friend Requests (Received)
+```
+GET /api/friends/pending
+Headers: Authorization: Bearer <token>
+```
+**Response:**
+```json
+{
+  "success": true,
+  "requests": [
+    {
+      "id": "request_id",
+      "fromUserId": "sender_uid",
+      "toUserId": "current_user_uid",
+      "status": "pending",
+      "createdAt": "2025-03-01T10:00:00Z",
+      "fromUser": {
+        "uid": "sender_uid",
+        "name": "John Doe",
+        "phoneNumber": "+6591234567",
+        "profilePicture": "url_to_image"
+      }
+    }
+  ],
+  "count": 1
+}
+```
+
 #### Get Friends List
 ```
 GET /api/friends
@@ -500,7 +528,7 @@ Body (new schema):
 ```
 Notes:
 - Legacy support: requests that still send "category" and "time" are mapped to "type" and "startTime" with a default 2-hour endTime.
-- format must be "online" or "offline". If "offline", venueType is required ("indoor" or "outdoor").
+- format must be "online" or "offline". If "offline", venueType is required ("indoor" | "outdoor" | "both").
 - type must be one of: sports|arts|culture|music|performance|workshop|tours|other
 - region must be one of: north|south|east|west|central
 - date is "YYYY-MM-DD"; times are 24h "HH:MM" (SGT); startTime must be earlier than endTime
@@ -558,6 +586,26 @@ Rules:
     "endTime": "12:00",
     "type": "workshop"
   }
+}
+```
+
+---
+
+#### Delete Event (Admin)
+```
+DELETE /api/admin/events/{event_id}
+Headers: Authorization: Bearer <token>
+```
+Rules:
+- Admin-only (requires admin role)
+- Deletes the event document
+- If you maintain bookings or related entities, handle any cascading cleanup as needed
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Event deleted"
 }
 ```
 

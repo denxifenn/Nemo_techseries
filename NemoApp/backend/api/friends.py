@@ -211,3 +211,81 @@ def list_friends(current_user):
         return jsonify({'success': True, 'friends': friends, 'count': len(friends)}), 200
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@friends_bp.route('/api/friends/pending', methods=['GET'])
+@require_auth
+def get_pending_requests(current_user):
+    """
+    List pending friend requests the current user has received.
+    Response:
+    {
+      "success": true,
+      "requests": [
+        {
+          "id": "request_id",
+          "fromUserId": "sender_uid",
+          "toUserId": "current_user_uid",
+          "status": "pending",
+          "createdAt": "2025-03-01T10:00:00Z",
+          "fromUser": {
+            "uid": "sender_uid",
+            "name": "John Doe",
+            "phoneNumber": "+6591234567",
+            "profilePicture": ""
+          }
+        }
+      ],
+      "count": 1
+    }
+    """
+    try:
+        # Query pending requests where current user is the recipient
+        query = (
+            db.collection('friendRequests')
+              .where('toUserId', '==', current_user)
+              .where('status', '==', 'pending')
+              .stream()
+        )
+
+        requests = []
+        for snap in query:
+            req = snap.to_dict() or {}
+            from_uid = req.get('fromUserId')
+            created_at = req.get('createdAt')
+
+            # Convert Firestore timestamp/datetime to ISO string if present
+            created_iso = None
+            try:
+                if hasattr(created_at, 'to_datetime'):
+                    created_iso = created_at.to_datetime().isoformat()
+                elif hasattr(created_at, 'isoformat'):
+                    created_iso = created_at.isoformat()
+            except Exception:
+                created_iso = None
+
+            # Fetch minimal sender profile
+            from_user_data = {}
+            if from_uid:
+                from_user_snap = db.collection('users').document(from_uid).get()
+                if from_user_snap.exists:
+                    d = from_user_snap.to_dict() or {}
+                    from_user_data = {
+                        'uid': from_uid,
+                        'name': d.get('fullName', d.get('name')),
+                        'phoneNumber': d.get('phoneNumber', ''),
+                        'profilePicture': d.get('profilePicture', '')
+                    }
+
+            requests.append({
+                'id': snap.id,
+                'fromUserId': from_uid,
+                'toUserId': req.get('toUserId'),
+                'status': req.get('status', 'pending'),
+                'createdAt': created_iso,
+                'fromUser': from_user_data
+            })
+
+        return jsonify({'success': True, 'requests': requests, 'count': len(requests)}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500

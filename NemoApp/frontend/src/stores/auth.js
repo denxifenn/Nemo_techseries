@@ -4,6 +4,27 @@ import { updateProfile } from 'firebase/auth';
 import api from '../services/api';
 import { formatSingaporePhone, phoneToEmail } from '../utils/phoneUtils';
 
+// Auth readiness synchronization across app refresh
+let _authReadyResolved = false;
+let _authReadyPromise = null;
+let _resolveAuthReady = null;
+function _getAuthReadyPromise() {
+  if (!_authReadyPromise) {
+    _authReadyPromise = new Promise((resolve) => {
+      _resolveAuthReady = resolve;
+    });
+  }
+  return _authReadyPromise;
+}
+function _resolveAuthReadyOnce() {
+  if (!_authReadyResolved) {
+    _authReadyResolved = true;
+    if (_resolveAuthReady) {
+      _resolveAuthReady(true);
+    }
+  }
+}
+
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: null,
@@ -248,6 +269,16 @@ export const useAuthStore = defineStore('auth', {
     // Clear error
     clearError() {
       this.error = null;
+    },
+
+    // Wait for Firebase onAuthStateChanged first emission
+    waitForAuthReady() {
+      return _getAuthReadyPromise();
+    },
+
+    // Mark auth ready (call from main.js on first onAuth emission)
+    markAuthReady() {
+      _resolveAuthReadyOnce();
     }
   }
 });

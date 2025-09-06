@@ -280,7 +280,7 @@ def sanitize_profile_updates(body: Dict[str, Any]) -> Tuple[bool, Dict[str, Any]
 # =========================
 
 VALID_EVENT_FORMATS = ["online", "offline"]
-VALID_VENUE_TYPES = ["indoor", "outdoor"]
+VALID_VENUE_TYPES = ["indoor", "outdoor", "both"]
 VALID_EVENT_TYPES = ["sports", "arts", "culture", "music", "performance", "workshop", "tours", "other"]
 VALID_EVENT_REGIONS = ["north", "south", "east", "west", "central"]
 

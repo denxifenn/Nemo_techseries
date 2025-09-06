@@ -161,29 +161,26 @@ export default {
           const isIndoorSelected = selectedFormats.includes('indoor')
           const isOutdoorSelected = selectedFormats.includes('outdoor')
 
-          // If offline is selected, include both indoor and outdoor
+          const isOnline = event.format === 'online'
+          const isIndoor = event.format === 'indoor'
+          const isOutdoor = event.format === 'outdoor'
+          const isBoth = event.format === 'both'
+
+          // Online filter
+          if (selectedFormats.includes('online') && isOnline) return true
+
+          // If offline is selected without specific sub-options, allow indoor, outdoor, both
           if (isOfflineSelected && !isIndoorSelected && !isOutdoorSelected) {
-            return event.format === 'indoor' || event.format === 'outdoor'
+            return isIndoor || isOutdoor || isBoth
           }
 
-          // If specific formats are selected, match them exactly
-          if (isIndoorSelected && event.format === 'indoor') return true
-          if (isOutdoorSelected && event.format === 'outdoor') return true
-          if (selectedFormats.includes('online') && event.format === 'online') return true
+          // If specific formats are selected, include 'both' as matching either
+          if (isIndoorSelected && (isIndoor || isBoth)) return true
+          if (isOutdoorSelected && (isOutdoor || isBoth)) return true
 
-          // If offline + indoor are selected, show only indoor
-          if (isOfflineSelected && isIndoorSelected && !isOutdoorSelected) {
-            return event.format === 'indoor'
-          }
-
-          // If offline + outdoor are selected, show only outdoor
-          if (isOfflineSelected && isOutdoorSelected && !isIndoorSelected) {
-            return event.format === 'outdoor'
-          }
-
-          // If offline + indoor + outdoor are selected, show both
+          // If offline + indoor + outdoor are selected, include all offline variants
           if (isOfflineSelected && isIndoorSelected && isOutdoorSelected) {
-            return event.format === 'indoor' || event.format === 'outdoor'
+            return isIndoor || isOutdoor || isBoth
           }
 
           return false
@@ -285,61 +282,62 @@ export default {
         <aside class="sidebar">
           <EventFilterSidebar @filtersChanged="handleFiltersChange" />
         </aside>
-        <div class="events-grid" ref="eventsGridRef">
-          <div 
-            v-for="event in pagedEvents"
-            :key="event.id"
-            class="event-card"
-          >
-            <Card>
-              <template #header>
-                <div class="event-image">
-                  <img :src="event.image" :alt="event.title" />
-                </div>
-              </template>
-              <template #title>{{ event.title }}</template>
-              <template #subtitle>
-                <div class="event-meta">
-                  <span class="event-date">{{ event.date }} at {{ event.startTime }} - {{ event.endTime }}</span>
-                  <span class="event-location"><span class="material-symbols-outlined">location_on</span> {{ event.location }}</span>
-                  <span class="event-organiser"><span class="material-symbols-outlined">person</span> {{ event.organiser }}</span>
-                  <span class="event-slots"><span class="material-symbols-outlined">confirmation_number</span>  {{ event.bookingSlots }}</span>
-                  <span class="event-price"><span class="material-symbols-outlined">attach_money</span>  {{ event.price }}</span>
-                  <!-- <span class="event-organiser">👤 {{ event.organiser }}</span> -->
-                  <!-- <span class="event-slots">🎫 {{ event.bookingSlots }}</span> -->
-                  <!-- <span class="event-price">{{ event.price === 0 ? '🆓 Free' : `💰 $${event.price}` }}</span> -->
-                </div>
-              </template>
-              <template #content>
-                <p class="event-description">{{ event.description }}</p>
-                <div class="event-tags">
-                  <Tag :value="event.format" severity="secondary" class="format-tag" />
-                  <Tag :value="event.type" severity="secondary" class="format-tag" />
-                  <Tag :value="event.region" severity="secondary" class="format-tag" />
-                </div>
-              </template>
-              <template #footer>
-                <Button
-                  label="Sign Up"
-                  class="p-button-primary signup-btn"
-                  icon="pi pi-calendar-plus"
-                  @click="handleSignUp(event.id)"
-                />
-              </template>
-            </Card>
+
+        <!-- Events content column (grid + pagination) -->
+        <div class="events-content">
+          <div class="events-grid" ref="eventsGridRef">
+            <div
+              v-for="event in pagedEvents"
+              :key="event.id"
+              class="event-card"
+            >
+              <Card>
+                <template #header>
+                  <div class="event-image">
+                    <img :src="event.image" :alt="event.title" />
+                  </div>
+                </template>
+                <template #title>{{ event.title }}</template>
+                <template #subtitle>
+                  <div class="event-meta">
+                    <span class="event-date">{{ event.date }} at {{ event.startTime }} - {{ event.endTime }}</span>
+                    <span class="event-location"><span class="material-symbols-outlined">location_on</span> {{ event.location }}</span>
+                    <span class="event-organiser"><span class="material-symbols-outlined">person</span> {{ event.organiser }}</span>
+                    <span class="event-slots"><span class="material-symbols-outlined">confirmation_number</span>  {{ event.bookingSlots }}</span>
+                    <span class="event-price"><span class="material-symbols-outlined">attach_money</span>  {{ event.price }}</span>
+                  </div>
+                </template>
+                <template #content>
+                  <p class="event-description">{{ event.description }}</p>
+                  <div class="event-tags">
+                    <Tag :value="event.format" severity="secondary" class="format-tag" />
+                    <Tag :value="event.type" severity="secondary" class="format-tag" />
+                    <Tag :value="event.region" severity="secondary" class="format-tag" />
+                  </div>
+                </template>
+                <template #footer>
+                  <Button
+                    label="Sign Up"
+                    class="p-button-primary signup-btn"
+                    icon="pi pi-calendar-plus"
+                    @click="handleSignUp(event.id)"
+                  />
+                </template>
+              </Card>
+            </div>
+          </div>
+
+          <div class="events-pagination">
+            <Paginator
+              :first="first"
+              :rows="rows"
+              :totalRecords="filteredEvents.length"
+              :rowsPerPageOptions="[6,12,24,48]"
+              @page="onPageChange"
+            />
           </div>
         </div>
       </div>
-
-        <div class="events-pagination">
-          <Paginator
-            :first="first"
-            :rows="rows"
-            :totalRecords="filteredEvents.length"
-            :rowsPerPageOptions="[6,12,24,48]"
-            @page="onPageChange"
-          />
-        </div>
 
         <!-- No Results Message -->
         <div v-if="filteredEvents.length === 0" class="no-results">
@@ -467,11 +465,28 @@ export default {
   overflow-y: auto;
 }
 
+.events-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
 .events-grid {
   flex: 1;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
   gap: 20px;
+}
+
+.events-pagination {
+  margin-top: 16px;
+}
+
+.events-pagination :deep(.p-paginator) {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .event-card {

@@ -32,6 +32,13 @@ auth.initializeAuth();
 
 // Subscribe to Firebase auth changes to keep store in sync
 onAuth(async (fbUser) => {
+  // Signal router guards that Firebase has emitted its first state
+  try {
+    if (typeof auth.markAuthReady === 'function') {
+      auth.markAuthReady();
+    }
+  } catch (_) { /* no-op */ }
+
   if (fbUser) {
     // Refresh local profile if user object exists
     await auth.fetchProfile();

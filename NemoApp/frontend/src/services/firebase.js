@@ -7,11 +7,13 @@ import {
   createUserWithEmailAndPassword,
   signOut as fbSignOut
 } from 'firebase/auth';
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import firebaseConfig from '../../../firebase/firebase-config.js';
 
 // Initialize app
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
+const storage = getStorage(firebaseApp);
 
 // Helper to get current user's ID token (or null)
 export async function getIdToken(forceRefresh = false) {
@@ -25,8 +27,15 @@ export async function getIdToken(forceRefresh = false) {
   }
 }
 
+// Upload helper for Storage -> returns public download URL
+export async function uploadFile(path, file) {
+  const ref = storageRef(storage, path);
+  await uploadBytes(ref, file);
+  return await getDownloadURL(ref);
+}
+
 // Auth helpers re-export
-export { firebaseApp, auth, signInWithEmailAndPassword, createUserWithEmailAndPassword };
+export { firebaseApp, auth, storage, storageRef, uploadBytes, getDownloadURL, signInWithEmailAndPassword, createUserWithEmailAndPassword };
 
 // Sign out wrapper
 export async function signOut() {
@@ -45,6 +54,7 @@ export function onAuth(callback) {
 export default {
   firebaseApp,
   auth,
+  storage,
   getIdToken,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,

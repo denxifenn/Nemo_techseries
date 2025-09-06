@@ -68,11 +68,11 @@
               initialValue=""
               class="form-field flex-1"
             >
-              <label class="field-label">Timing *</label>
-              <Calendar
+              <label class="field-label">Start Time *</label>
+              <InputText
                 v-model="$field.value"
-                timeOnly
-                placeholder="Select time"
+                type="text"
+                placeholder="HH:MM (24h)"
                 class="form-input"
               />
               <Message
@@ -85,7 +85,29 @@
               </Message>
             </FormField>
 
-            
+            <!-- End Time -->
+            <FormField
+              v-slot="$field"
+              name="endTime"
+              initialValue=""
+              class="form-field flex-1"
+            >
+              <label class="field-label">End Time *</label>
+              <InputText
+                v-model="$field.value"
+                type="text"
+                placeholder="HH:MM (24h)"
+                class="form-input"
+              />
+              <Message
+                v-if="$field?.invalid"
+                severity="error"
+                size="small"
+                variant="simple"
+              >
+                {{ $field.error?.message }}
+              </Message>
+            </FormField>
           </div>
 
           <!-- Location -->
@@ -173,13 +195,13 @@
               initialValue=""
               class="form-field flex-1"
             >
-              <label class="field-label">Price</label>
+              <label class="field-label">Price (SGD)</label>
               <InputNumber
                 v-model="$field.value"
                 placeholder="Event price"
                 class="form-input"
                 mode="currency"
-                currency="USD"
+                currency="SGD"
                 :min="0"
               />
               <Message
@@ -211,6 +233,33 @@
                 placeholder="Select format"
                 class="form-input"
               />
+              <Message
+                v-if="$field?.invalid"
+                severity="error"
+                size="small"
+                variant="simple"
+              >
+                {{ $field.error?.message }}
+              </Message>
+            </FormField>
+
+            <!-- Venue Type (required when format=offline) -->
+            <FormField
+              v-slot="$field"
+              name="venueType"
+              initialValue=""
+              class="form-field flex-1"
+            >
+              <label class="field-label">Venue Type</label>
+              <Select
+                v-model="$field.value"
+                :options="venueOptions"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Indoor / Outdoor / Both"
+                class="form-input"
+              />
+              <small class="text-gray-500">Required when Format is Offline</small>
               <Message
                 v-if="$field?.invalid"
                 severity="error"
@@ -361,6 +410,7 @@ import Select from "primevue/select";
 import FileUpload from "primevue/fileupload";
 import Button from "primevue/button";
 import Message from "primevue/message";
+import { uploadFile } from "@/services/firebase";
 
 const toast = useToast();
 const router = useRouter();
@@ -369,15 +419,18 @@ const router = useRouter();
 const resolver = zodResolver(
   z.object({
     title: z.string().min(1, { message: "Event title is required." }),
-    date: z.date({ required_error: "Event date is required." }),
-    startTime: z.date({ required_error: "Start time is required." }),
-    endTime: z.date({ required_error: "End time is required." }),
+    // PrimeVue Calendar returns Date object
+    date: z.any().refine((v) => v instanceof Date, { message: "Event date is required." }),
+    // Times are free-typed strings to allow manual input
+    startTime: z.string().regex(/^\d{1,2}:\d{2}$/, { message: "Start time must be HH:MM (24h)" }),
+    endTime: z.string().regex(/^\d{1,2}:\d{2}$/, { message: "End time must be HH:MM (24h)" }),
     location: z.string().min(1, { message: "Location is required." }),
     organiser: z.string().min(1, { message: "Organiser name is required." }),
     bookingSlots: z.number().min(1, { message: "At least 1 booking slot is required." }),
-    price: z.number().optional(),
+    price: z.number().min(0, { message: "Price must be ≥ 0" }),
     description: z.string().min(10, { message: "Description must be at least 10 characters." }),
     format: z.string().min(1, { message: "Format is required." }),
+    venueType: z.string().optional(), // Required only when format=offline (validated on submit)
     type: z.string().min(1, { message: "Type is required." }),
     region: z.string().min(1, { message: "Region is required." }),
     image: z.any().optional(),
@@ -408,6 +461,12 @@ const regionOptions = [
   { label: "Central", value: "central" }
 ];
 
+const venueOptions = [
+  { label: "Indoor", value: "indoor" },
+  { label: "Outdoor", value: "outdoor" },
+  { label: "Both", value: "both" },
+];
+
 const selectedImage = ref(null);
 
 // Handle file selection
@@ -416,33 +475,72 @@ const onFileSelect = (event) => {
 };
 
 // Handle form submission
-const onFormSubmit = (data) => {
+const onFormSubmit = async (formData) => {
+  // Helper: format Date -> YYYY-MM-DD
+  const fmtDate = (d) => {
+    try {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      return `${yyyy}-${mm}-${dd}`;
+    } catch {
+      return "";
+    }
+  };
+  // Helper: normalize "H:MM" -> "HH:MM"
+  const toHHMM = (s) => {
+    const [h, m] = String(s || "").split(":");
+    const hh = String(parseInt(h || "0", 10)).padStart(2, "0");
+    const mm = String(parseInt(m || "0", 10)).padStart(2, "0");
+    return `${hh}:${mm}`;
+  };
+
   try {
-    // Add the selected image to the form data
-    const formData = {
-      ...data,
-      image: selectedImage.value
+    // Validate conditional venue requirement
+    if (formData.format === "offline" && !formData.venueType) {
+      toast.add({ severity: "error", summary: "Validation", detail: "Venue Type is required when Format is Offline", life: 3000 });
+      return;
+    }
+
+    // Upload image if selected
+    let imageUrl = "";
+    if (selectedImage.value) {
+      const file = selectedImage.value;
+      const safeName = (file.name || `event_${Date.now()}.jpg`).replace(/[^\w.\-]+/g, "_");
+      const path = `events/${Date.now()}_${safeName}`;
+      imageUrl = await uploadFile(path, file);
+    }
+
+    // Compose backend payload
+    const payload = {
+      title: formData.title,
+      description: formData.description,
+      format: formData.format,
+      venueType: formData.format === "offline" ? (formData.venueType || "") : null,
+      type: formData.type,
+      region: formData.region,
+      organiser: formData.organiser,
+      location: formData.location,
+      date: fmtDate(formData.date),
+      startTime: toHHMM(formData.startTime),
+      endTime: toHHMM(formData.endTime),
+      price: typeof formData.price === "number" ? formData.price : 0,
+      maxParticipants: formData.bookingSlots,
+      imageUrl,
     };
-    
-    console.log("Event created:", formData);
-    
-    toast.add({
-      severity: "success",
-      summary: "Success",
-      detail: "Event created successfully!",
-      life: 3000
-    });
-    
-    // Redirect to events list or detail page
-    router.push({ name: "Discover" }); // Adjust route name as needed
-    
+
+    // Submit to backend
+    const resp = await (await import("@/services/api")).default.post("/api/admin/events", payload);
+    if (resp?.data?.success) {
+      toast.add({ severity: "success", summary: "Event Created", detail: "Event created successfully", life: 3000 });
+      router.push({ name: "Discover" });
+    } else {
+      throw new Error(resp?.data?.error || "Unknown error");
+    }
   } catch (error) {
-    toast.add({
-      severity: "error",
-      summary: "Error",
-      detail: "Failed to create event. Please try again.",
-      life: 3000
-    });
+    console.error("Create event failed", error);
+    const msg = error?.response?.data?.error || error?.message || "Failed to create event. Please try again.";
+    toast.add({ severity: "error", summary: "Error", detail: msg, life: 4000 });
   }
 };
 

@@ -25,62 +25,136 @@
           </div>
         </div>
 
-        <!-- Friends Grid / Empty state -->
-        <div v-if="loading" class="loading-state">
-          Loading friends...
-        </div>
+        <!-- Tabs: Friends and Pending Requests -->
+        <TabView v-model:activeIndex="activeTab">
+          <TabPanel header="My Friends">
+            <!-- Friends Grid / Empty state -->
+            <div v-if="loading" class="loading-state">
+              Loading friends...
+            </div>
 
-        <div v-else-if="friends.length === 0" class="empty-state">
-          <h3>No friends yet</h3>
-          <p>Add friends using their Singapore phone number above.</p>
-        </div>
+            <div v-else-if="friends.length === 0" class="empty-state">
+              <h3>No friends yet</h3>
+              <p>Add friends using their Singapore phone number above.</p>
+            </div>
 
-        <div v-else class="friends-grid">
-          <Card
-            v-for="friend in friends"
-            :key="friend.id"
-            class="friend-card"
-          >
-            <template #content>
-              <div class="friend-content">
-                <!-- Profile Image -->
-                <div class="friend-avatar">
-                  <Avatar
-                    :image="friend.avatar"
-                    :label="friend.initials"
-                    size="large"
-                    shape="circle"
-                    class="avatar"
-                  />
-                </div>
+            <div v-else class="friends-grid">
+              <Card
+                v-for="friend in friends"
+                :key="friend.id"
+                class="friend-card"
+              >
+                <template #content>
+                  <div class="friend-content">
+                    <!-- Profile Image -->
+                    <div class="friend-avatar">
+                      <Avatar
+                        :image="friend.avatar"
+                        :label="friend.initials"
+                        size="large"
+                        shape="circle"
+                        class="avatar"
+                      />
+                    </div>
 
-                <!-- Friend Info -->
-                <div class="friend-info">
-                  <h3 class="friend-name">{{ friend.name }}</h3>
-                  <p class="friend-role">{{ friend.role }}</p>
-                  <p class="friend-company">{{ friend.company }}</p>
-                  <div class="friend-stats">
-                    <span class="stat">
-                      <i class="pi pi-users"></i>
-                      {{ friend.mutualFriends }} mutual
-                    </span>
+                    <!-- Friend Info -->
+                    <div class="friend-info">
+                      <h3 class="friend-name">{{ friend.name }}</h3>
+                      <p class="friend-role">{{ friend.role }}</p>
+                      <p class="friend-company">{{ friend.company }}</p>
+                      <div class="friend-stats">
+                        <span class="stat">
+                          <i class="pi pi-users"></i>
+                          {{ friend.mutualFriends }} mutual
+                        </span>
+                      </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="friend-actions">
+                      <Button
+                        label="More Info"
+                        icon="pi pi-info-circle"
+                        size="small"
+                        @click="viewProfile(friend)"
+                        class="action-btn"
+                      />
+                    </div>
                   </div>
-                </div>
+                </template>
+              </Card>
+            </div>
+          </TabPanel>
 
-                <!-- Action Buttons -->
-                <div class="friend-actions">
-                  <Button
-                    label="More Info"
-                    icon="pi pi-info-circle"
-                    size="small"
-                    @click="viewProfile(friend)"
-                    class="action-btn"
-                  />
-                </div>
-              </div>
-            </template>
-          </Card>
-        </div>
+          <TabPanel :header="pendingHeader">
+            <div v-if="pendingLoading" class="loading-state">
+              Loading pending requests...
+            </div>
+
+            <div v-else-if="pendingRequests.length === 0" class="empty-state">
+              <h3>No pending requests</h3>
+              <p>When someone adds you, you'll see it here to accept or reject.</p>
+            </div>
+
+            <div v-else class="friends-grid">
+              <Card
+                v-for="req in pendingRequests"
+                :key="req.id"
+                class="friend-card"
+              >
+                <template #content>
+                  <div class="friend-content">
+                    <!-- Requester Avatar -->
+                    <div class="friend-avatar">
+                      <Avatar
+                        :image="req.fromUser.avatar"
+                        :label="req.fromUser.initials"
+                        size="large"
+                        shape="circle"
+                        class="avatar"
+                      />
+                    </div>
+
+                    <!-- Request Info -->
+                    <div class="friend-info">
+                      <h3 class="friend-name">{{ req.fromUser.name }}</h3>
+                      <p class="friend-company">{{ req.fromUser.phoneNumber }}</p>
+                      <div class="friend-stats">
+                        <span class="stat">
+                          <i class="pi pi-clock"></i>
+                          {{ req.createdAtDisplay || 'Pending' }}
+                        </span>
+                      </div>
+                    </div>
+
+                    <!-- Accept / Reject -->
+                    <div class="friend-actions">
+                      <Button
+                        label="Accept"
+                        icon="pi pi-check"
+                        size="small"
+                        severity="success"
+                        :loading="isBusy(req.id)"
+                        @click="acceptRequest(req)"
+                        class="action-btn"
+                      />
+                      <Button
+                        label="Reject"
+                        icon="pi pi-times"
+                        size="small"
+                        severity="danger"
+                        outlined
+                        :loading="isBusy(req.id)"
+                        @click="rejectRequest(req)"
+                        class="action-btn"
+                      />
+                    </div>
+                  </div>
+                </template>
+              </Card>
+            </div>
+          </TabPanel>
+        </TabView>
 
         <!-- Profile Dialog -->
         <Dialog 
@@ -155,7 +229,7 @@
 
 <script>
 import ProfileNavBar from "@/components/ProfileNavBar.vue";
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import Card from 'primevue/card'
 import Avatar from 'primevue/avatar'
 import Button from 'primevue/button'
@@ -164,6 +238,8 @@ import Divider from 'primevue/divider'
 import Tag from 'primevue/tag'
 import Toast from 'primevue/toast'
 import InputText from 'primevue/inputtext'
+import TabView from 'primevue/tabview'
+import TabPanel from 'primevue/tabpanel'
 import { useToast } from 'primevue/usetoast'
 import api from '@/services/api'
 
@@ -178,7 +254,9 @@ export default {
     Divider,
     Tag,
     Toast,
-    InputText
+    InputText,
+    TabView,
+    TabPanel
   },
   setup() {
     const toast = useToast()
@@ -190,6 +268,23 @@ export default {
 
     const addPhone = ref('')
     const sending = ref(false)
+
+    // Tabs & pending requests state
+    const activeTab = ref(0)
+    const pendingRequests = ref([])
+    const pendingLoading = ref(false)
+    const hasLoadedPending = ref(false)
+    const actionBusy = ref({})
+
+    const pendingCount = computed(() => pendingRequests.value.length)
+    const pendingHeader = computed(() => pendingCount.value ? `Pending Requests (${pendingCount.value})` : 'Pending Requests')
+
+    function isBusy(id) {
+      return !!actionBusy.value[id]
+    }
+    function setBusy(id, val) {
+      actionBusy.value = { ...actionBusy.value, [id]: !!val }
+    }
 
     const placeholderAvatar = 'https://via.placeholder.com/150?text=Friend'
 
@@ -247,6 +342,85 @@ export default {
       }
     }
 
+    async function loadPending() {
+      pendingLoading.value = true
+      try {
+        const resp = await api.get('/api/friends/pending')
+        const list = Array.isArray(resp.data?.requests) ? resp.data.requests : []
+        pendingRequests.value = list.map(r => {
+          const u = r.fromUser || {}
+          const name = u.name || 'User'
+          const avatar = (u.profilePicture && String(u.profilePicture).trim()) ? u.profilePicture : placeholderAvatar
+          let displayTime = ''
+          try {
+            if (r.createdAt) {
+              const dt = new Date(r.createdAt)
+              if (!isNaN(dt.getTime())) {
+                displayTime = dt.toLocaleString()
+              }
+            }
+          } catch (_) { /* ignore */ }
+          return {
+            id: r.id,
+            fromUser: {
+              uid: u.uid || '',
+              name,
+              phoneNumber: u.phoneNumber || '',
+              avatar,
+              initials: computeInitials(name)
+            },
+            createdAt: r.createdAt || null,
+            createdAtDisplay: displayTime
+          }
+        })
+      } catch (e) {
+        const msg = e?.response?.data?.error || e?.message || 'Failed to load pending requests'
+        toast.add({ severity: 'error', summary: 'Pending Requests', detail: msg, life: 3000 })
+        pendingRequests.value = []
+      } finally {
+        pendingLoading.value = false
+      }
+    }
+
+    watch(activeTab, (i) => {
+      if (i === 1 && !hasLoadedPending.value) {
+        hasLoadedPending.value = true
+        loadPending()
+      }
+    })
+
+    async function acceptRequest(req) {
+      if (!req?.id) return
+      setBusy(req.id, true)
+      try {
+        await api.put(`/api/friends/request/${req.id}`, { action: 'accept' })
+        // Remove from pending and refresh friends
+        pendingRequests.value = pendingRequests.value.filter(r => r.id !== req.id)
+        toast.add({ severity: 'success', summary: 'Friend Request', detail: 'Friend request accepted', life: 2500 })
+        loadFriends()
+      } catch (e) {
+        const msg = e?.response?.data?.error || e?.message || 'Failed to accept request'
+        toast.add({ severity: 'error', summary: 'Friend Request', detail: msg, life: 3500 })
+      } finally {
+        setBusy(req.id, false)
+      }
+    }
+
+    async function rejectRequest(req) {
+      if (!req?.id) return
+      setBusy(req.id, true)
+      try {
+        await api.put(`/api/friends/request/${req.id}`, { action: 'reject' })
+        pendingRequests.value = pendingRequests.value.filter(r => r.id !== req.id)
+        toast.add({ severity: 'success', summary: 'Friend Request', detail: 'Friend request rejected', life: 2500 })
+      } catch (e) {
+        const msg = e?.response?.data?.error || e?.message || 'Failed to reject request'
+        toast.add({ severity: 'error', summary: 'Friend Request', detail: msg, life: 3500 })
+      } finally {
+        setBusy(req.id, false)
+      }
+    }
+
     onMounted(() => {
       loadFriends()
     })
@@ -266,10 +440,22 @@ export default {
       loading,
       addPhone,
       sending,
+      // tabs
+      activeTab,
+      // pending
+      pendingRequests,
+      pendingLoading,
+      pendingHeader,
+      pendingCount,
+      isBusy,
+      acceptRequest,
+      rejectRequest,
+      // dialog/profile
       showProfileDialog,
       selectedFriend,
       viewProfile,
       closeProfile,
+      // actions
       sendFriendRequest,
       toast
     }

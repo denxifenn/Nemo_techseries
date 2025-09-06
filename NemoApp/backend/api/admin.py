@@ -348,3 +348,24 @@ def update_event(current_user, event_id: str):
         return jsonify({"success": True, "message": "Event updated", "updated": updates}), 200
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+@admin_bp.route('/api/admin/events/<event_id>', methods=['DELETE'])
+@require_admin
+def delete_event(current_user, event_id: str):
+    """
+    Delete an event (admin only).
+    Notes:
+      - This removes the event document. Any existing client references will break.
+      - If booking data is stored elsewhere, add cleanup here accordingly.
+    """
+    try:
+        ref = db.collection("events").document(event_id)
+        snap = ref.get()
+        if not snap.exists:
+            return jsonify({"success": False, "error": "Event not found"}), 404
+
+        ref.delete()
+        return jsonify({"success": True, "message": "Event deleted"}), 200
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500

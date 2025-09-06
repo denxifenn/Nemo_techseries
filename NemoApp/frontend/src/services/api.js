@@ -51,15 +51,31 @@ function clearManualToken() {
 }
 
 async function resolveAuthHeader() {
-  // Priority: manual token in localStorage -> Firebase ID token -> none
+  // Priority:
+  // 1) Manual token (ApiTester)
+  // 2) Firebase ID token (when currentUser is ready)
+  // 3) Persisted app token from auth store (during initial refresh before Firebase restores currentUser)
   const manual = getManualToken();
   if (manual && manual.trim().length > 0) {
     return { Authorization: `Bearer ${manual.trim()}` };
   }
+
+  // Try Firebase currentUser token
   const fbToken = await getIdToken();
   if (fbToken) {
     return { Authorization: `Bearer ${fbToken}` };
   }
+
+  // Fallback to persisted token set by the auth store on login
+  try {
+    const stored = localStorage.getItem('authToken');
+    if (stored && stored.trim().length > 0) {
+      return { Authorization: `Bearer ${stored.trim()}` };
+    }
+  } catch {
+    // ignore storage errors
+  }
+
   return {};
 }
 

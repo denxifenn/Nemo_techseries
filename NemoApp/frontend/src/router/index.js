@@ -42,7 +42,14 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
   const auth = useAuthStore(pinia)
 
-  // Initialize auth from persisted storage on first navigation
+  // Wait for Firebase auth first emission to avoid false redirect on hard refresh
+  try {
+    if (typeof auth.waitForAuthReady === 'function') {
+      await auth.waitForAuthReady()
+    }
+  } catch (_) { /* no-op */ }
+
+  // Initialize auth from persisted storage on first navigation (verifies token with backend)
   if (!auth.isAuthenticated) {
     await auth.initializeAuth()
   }
