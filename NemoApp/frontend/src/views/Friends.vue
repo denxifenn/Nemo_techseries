@@ -287,12 +287,12 @@ export default {
 
 .page-title {
   font-size: 2.5rem;
-  color: #ff7733;
+  color: #ffffff;
   margin-bottom: 0.5rem;
 }
 
 .page-subtitle {
-  color: #666;
+  color: white;
   font-size: 1.1rem;
 }
 
@@ -304,7 +304,7 @@ export default {
 
 .friend-card {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-  background-color: #FFC67B;
+  background-color: #ffffff;
   border-radius: 20px;
 }
 

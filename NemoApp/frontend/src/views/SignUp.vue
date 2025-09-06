@@ -122,7 +122,14 @@ async function handleSignUp() {
 
     try { router.push('/discover'); } catch {}
   } catch (e) {
-    const msg = e?.response?.data?.error || e?.message || String(e);
+    let msg = e?.response?.data?.error || e?.message || String(e);
+
+    // Map Firebase duplicate email (email alias from phone) to user-friendly phone message
+    const code = e?.code || '';
+    if (code === 'auth/email-already-in-use' || String(msg).includes('auth/email-already-in-use')) {
+      msg = 'Phone number already in use';
+    }
+
     error.value = msg;
     toast.add({ severity: 'error', summary: 'Sign up failed', detail: msg, life: 4000 });
   } finally {

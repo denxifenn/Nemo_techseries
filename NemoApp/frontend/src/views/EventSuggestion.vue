@@ -40,13 +40,13 @@
 import { ref } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { useRouter } from "vue-router";
-
+import api from '@/services/api';
 
 const toast = useToast();
 const suggestion = ref('');
 const isFocused = ref(false);
 const router = useRouter();
- 
+
 const handleFocus = () => {
   isFocused.value = true;
 };
@@ -55,7 +55,7 @@ const handleBlur = () => {
   isFocused.value = false;
 };
 
-const submitSuggestion = () => {
+async function submitSuggestion() {
   if (!suggestion.value.trim()) {
     toast.add({
       severity: 'warn',
@@ -66,19 +66,28 @@ const submitSuggestion = () => {
     return;
   }
 
-  // Here you would typically send the suggestion to your backend
-  console.log('Suggestion submitted:', suggestion.value);
-  
-  toast.add({
-    severity: 'success',
-    summary: 'Success',
-    detail: 'Thank you for your suggestion! We appreciate your feedback.',
-    life: 4000
-  });
-  
-  // Clear the form after successful submission
-  suggestion.value = '';
-};
+  try {
+    const resp = await api.post('/api/suggestions', { text: suggestion.value.trim() });
+    if (!resp?.ok || !resp?.data?.success) {
+      throw new Error(resp?.data?.error || 'Failed to submit suggestion');
+    }
+    toast.add({
+      severity: 'success',
+      summary: 'Success',
+      detail: 'Thank you for your suggestion! We appreciate your feedback.',
+      life: 4000
+    });
+    suggestion.value = '';
+  } catch (e) {
+    const msg = e?.response?.data?.error || e?.message || 'Failed to submit suggestion';
+    toast.add({
+      severity: 'error',
+      summary: 'Suggestion',
+      detail: msg,
+      life: 3500
+    });
+  }
+}
 
 const clearSuggestion = () => {
   suggestion.value = '';
@@ -96,17 +105,17 @@ const clearSuggestion = () => {
 }
 
 .suggestion-form-box {
-  background: #EC7600;
+  background: #ffffff; /* improved contrast */
   padding: 3rem;
   border-radius: 16px;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
   width: 100%;
   max-width: 600px;
-  border: 1px solid #ffd4b3;
+  border: 1px solid #e5e7eb; /* subtle neutral border */
 }
 
 .form-title {
-  color: #8b4513;
+  color: #111827; /* dark text for good contrast */
   font-size: 2rem;
   font-weight: 600;
   text-align: center;
@@ -135,6 +144,7 @@ const clearSuggestion = () => {
   resize: vertical;
   min-height: 150px;
   background: white;
+  color: black; /* Ensure text is black */
   transition: all 0.3s ease;
   box-sizing: border-box;
 }
@@ -164,7 +174,7 @@ const clearSuggestion = () => {
 
 .submit-btn {
   background: linear-gradient(135deg, #ff9966 0%, #ff7733 100%);
-  color: white;
+  color: #ffffff;
   border: none;
   padding: 0.875rem 2rem;
   border-radius: 8px;
@@ -191,7 +201,7 @@ const clearSuggestion = () => {
 
 .clear-btn {
   background: transparent;
-  color: #8b4513;
+  color: #374151; /* slate-700 for contrast */
   border: 2px solid #ff9966;
   padding: 0.875rem 2rem;
   border-radius: 8px;

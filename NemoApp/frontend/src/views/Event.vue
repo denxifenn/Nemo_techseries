@@ -96,10 +96,12 @@
               <div class="price-value">Free Event</div>
             </div>
             
-            <Button 
-              class="book-button" 
+            <Button
+              class="book-button"
               @click="handleBooking"
               :loading="isBooking"
+              :disabled="!isLoggedIn"
+              title="Please sign in to register"
             >
               <i class="pi pi-ticket"></i>
               <span>Register Now</span>
@@ -158,6 +160,7 @@
 <script>
 import Button from 'primevue/button';
 import api from '../services/api';
+import { auth } from '../services/firebase';
 
 export default {
   name: 'EventDetail',
@@ -188,8 +191,20 @@ export default {
       }
     }
   },
+  computed: {
+    isLoggedIn() {
+      return !!auth.currentUser;
+    }
+  },
   methods: {
     async handleBooking() {
+      // Require authentication client-side to avoid 401s
+      if (!this.isLoggedIn) {
+        // Send user to login and return here after login
+        this.$router.push({ name: 'Login', query: { redirect: this.$route.fullPath } });
+        return;
+      }
+
       this.isBooking = true;
       try {
         if (!this.event?.id) throw new Error('Missing event id');

@@ -151,6 +151,7 @@ import Divider from "primevue/divider";
 import ProgressBar from "primevue/progressbar";
 import Toast from "primevue/toast";
 import { useToast } from "primevue/usetoast";
+import api from "@/services/api";
 
 export default {
   name: "ProfilePage",
@@ -169,41 +170,70 @@ export default {
   setup() {
     const toast = useToast();
 
-    onMounted(() => {
-      // Component mounted successfully
-    });
-
-    // Layout improvements completed
-
-    // Sample user profile data
+    // Reactive profile
     const user = ref({
-      name: "Lee Kian Yee",
-      age: 28,
-      phoneNumber: "+65 9123 4567",
-      role: "Construction Worker",
-      company: "ABC Construction Pte Ltd",
+      name: "",
+      age: null,
+      phoneNumber: "",
+      role: "",
+      company: "", // not provided by backend; keep for layout compatibility
       avatar: profilePic,
-      initials: "LK",
-      nationality: "Chinese",
-      languages: ["Basic English", "Mandarin"],
-      homeCountry: "Philippines",
-      restDay: "Saturday, Sunday",
-      interests: [
-        "Cooking",
-        "Childcare",
-        "Filipino Culture",
-        "K-Drama",
-        "Shopping",
-      ],
-      skills: [
-        { name: "Childcare", level: 90 },
-        { name: "Cooking", level: 85 },
-        { name: "Housekeeping", level: 95 },
-        { name: "English Communication", level: 75 },
-        { name: "Basic Mandarin", level: 40 },
-      ],
+      initials: "",
+      nationality: "",
+      languages: [],
+      homeCountry: "",
+      restDay: "",
+      interests: [],
+      skills: []
     });
 
+    function computeInitials(fullName) {
+      const parts = String(fullName || "").trim().split(/\s+/);
+      const first = parts[0]?.[0] || "";
+      const last = parts.length > 1 ? parts[parts.length - 1]?.[0] : "";
+      return (first + last).toUpperCase() || "U";
+    }
+
+    async function loadProfile() {
+      try {
+        const resp = await api.get("/api/profile");
+        if (!resp?.data?.success) throw new Error(resp?.data?.error || "Failed to load profile");
+        const p = resp.data.profile || {};
+        user.value.name = p.fullName || p.name || "";
+        user.value.age = p.age ?? null;
+        user.value.phoneNumber = p.phoneNumber || "";
+        user.value.role = p.role || "";
+        // company not provided by backend; leave empty
+        user.value.avatar = p.profilePicture && String(p.profilePicture).trim() ? p.profilePicture : profilePic;
+        user.value.initials = computeInitials(user.value.name);
+        user.value.nationality = p.nationality || "";
+        user.value.languages = Array.isArray(p.languages) ? p.languages : [];
+        user.value.homeCountry = p.homeCountry || "";
+        user.value.restDay = Array.isArray(p.restDays) ? p.restDays.join(", ") : (p.restDay || "");
+        user.value.interests = Array.isArray(p.interests) ? p.interests : [];
+        // Backend skills rating is "Basic|Proficient|Expert"; map to numeric for ProgressBar
+        const skills = Array.isArray(p.skills) ? p.skills : [];
+        user.value.skills = skills.map(s => {
+          const rating = String(s?.rating || "").toLowerCase();
+          let level = 0;
+          if (rating === "basic") level = 33;
+          else if (rating === "proficient") level = 66;
+          else if (rating === "expert") level = 100;
+          return { name: s?.name || "", level };
+        });
+      } catch (e) {
+        toast.add({
+          severity: "error",
+          summary: "Profile",
+          detail: e?.message || "Failed to load profile",
+          life: 3000
+        });
+      }
+    }
+
+    onMounted(() => {
+      loadProfile();
+    });
 
     const changePhoto = () => {
       toast.add({
@@ -218,53 +248,8 @@ export default {
       toast.add({
         severity: "info",
         summary: "Edit Profile",
-        detail: "Opening profile editor",
+        detail: "Profile edit coming soon",
         life: 3000,
-      });
-    };
-
-    const shareProfile = () => {
-      toast.add({
-        severity: "success",
-        summary: "Profile Shared",
-        detail: "Profile link copied to clipboard",
-        life: 3000,
-      });
-    };
-
-    const callEmergency = () => {
-      toast.add({
-        severity: "warn",
-        summary: "Emergency Contact",
-        detail: `Calling ${user.value.emergencyContact.name}`,
-        life: 3000,
-      });
-    };
-
-    const callPolice = () => {
-      toast.add({
-        severity: "error",
-        summary: "Emergency",
-        detail: "Calling Police: 999",
-        life: 5000,
-      });
-    };
-
-    const callAmbulance = () => {
-      toast.add({
-        severity: "error",
-        summary: "Emergency",
-        detail: "Calling Ambulance: 995",
-        life: 5000,
-      });
-    };
-
-    const callFire = () => {
-      toast.add({
-        severity: "error",
-        summary: "Emergency",
-        detail: "Calling Fire Service: 995",
-        life: 5000,
       });
     };
 
@@ -272,7 +257,6 @@ export default {
       user,
       changePhoto,
       editProfile,
-      shareProfile,
     };
   },
 };

@@ -36,6 +36,15 @@ def login():
         except Exception:
             normalized_phone = None
 
+    # Check FIN uniqueness if provided
+    if fin_number:
+        fin_upper = str(fin_number).strip().upper()
+        # Check if FIN already exists for a different user
+        existing_users = db.collection('users').where('finNumber', '==', fin_upper).limit(1).get()
+        for doc in existing_users:
+            if doc.id != uid:  # FIN belongs to a different user
+                return jsonify({'success': False, 'error': 'FIN number already registered to another account'}), 400
+
     # Ensure user profile exists; auto-provision on first login, merge phoneNumber/name/finNumber if provided
     user = FirebaseService.ensure_user_doc(uid, email=None, name=name, phoneNumber=normalized_phone, finNumber=fin_number)
 

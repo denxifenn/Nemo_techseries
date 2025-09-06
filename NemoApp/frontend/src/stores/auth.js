@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { auth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from '../services/firebase';
+import { auth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, getIdToken } from '../services/firebase';
 import { updateProfile } from 'firebase/auth';
 import api from '../services/api';
 import { formatSingaporePhone, phoneToEmail } from '../utils/phoneUtils';
@@ -199,6 +199,20 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
+    // Local-only session clear (no Firebase signOut) to avoid UX flicker on transient verify failures
+    clearSessionLocal() {
+      this.user = null;
+      this.isAuthenticated = false;
+      this.profileCompleted = false;
+      this.isAdmin = false;
+      this.token = null;
+      this.error = null;
+      try {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
+      } catch {}
+    },
+
     // Initialize auth state from localStorage
     async initializeAuth() {
       const storedToken = localStorage.getItem('authToken');
@@ -216,16 +230,15 @@ export const useAuthStore = defineStore('auth', {
             
             // Check profile completion
             await this.checkProfileCompletion();
-            
             return true;
           } else {
-            // Token invalid, clear everything
-            await this.logout();
+            // Token invalid, clear local session only (do not sign out Firebase here)
+            this.clearSessionLocal();
             return false;
           }
         } catch (error) {
-          // Token verification failed
-          await this.logout();
+          // Token verification failed (network or backend down) - keep user on page but clear local
+          this.clearSessionLocal();
           return false;
         }
       }

@@ -17,10 +17,10 @@
       </div>
 
       <div class="nav-bottom">
-        <router-link to="/logout" class="nav-link logout-link">
+        <a @click="handleLogout" class="nav-link logout-link">
           <i class="pi pi-sign-out"></i>
           <span>Sign Out</span>
-        </router-link>
+        </a>
         <router-link to="/delete-account" class="nav-link delete-link">
           <i class="pi pi-times"></i>
           <span>Delete Account</span>
@@ -31,7 +31,22 @@
 </template>
 
 <script setup>
-// Simplified navigation component
+import { useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
+
+const router = useRouter();
+const authStore = useAuthStore();
+
+async function handleLogout() {
+  try {
+    await authStore.logout();
+    router.push('/');
+  } catch (error) {
+    console.error('Logout failed:', error);
+    // Still redirect even if logout fails
+    router.push('/');
+  }
+}
 </script>
 
 <style scoped>
@@ -104,6 +119,10 @@
 .nav-link span {
   display: block;
   font-size: 0.9rem;
+}
+
+.logout-link {
+  cursor: pointer;
 }
 
 .logout-link:hover {

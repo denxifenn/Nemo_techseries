@@ -179,20 +179,43 @@ h4{
     margin-left: 1rem;
 }
 
-.p-menubar .p-menuitem-link:hover {
-    background-color: #ff0000;
+/* removed old red hover override */
+
+/* Default: orange-themed pill buttons visible without hover */
+::v-deep(.p-menubar .p-menuitem-link) {
+  background-color: #FFF7ED !important;            /* light orange background */
+  border: 1px solid #EC7600 !important;
+  border-radius: 6px;
+  color: #EC7600 !important;
+  font-weight: 600;
+  line-height: 1;
 }
 
-/* Force menu links and text to black */
-::v-deep(.p-menubar .p-menuitem-link),
-::v-deep(.p-menubar .p-menuitem-link *){
-  color: #000 !important;
+/* Ensure icon/text adopt orange color in default state */
+::v-deep(.p-menubar .p-menuitem-link .p-menuitem-text),
+::v-deep(.p-menubar .p-menuitem-link .p-menuitem-icon) {
+  color: #EC7600 !important;
 }
 
-/* On hover: light grey background, keep black text */
+::v-deep(.p-menubar .p-menuitem-link:visited) {
+  color: #EC7600 !important;
+}
+
+/* Active/hover/focus states: solid orange with white text */
 ::v-deep(.p-menubar .p-menuitem-link:hover),
-::v-deep(.p-menubar .p-menuitem-link:hover *){
-  background-color: #f0f0f0 !important;
-  color: #000 !important;
+::v-deep(.p-menubar .p-menuitem-link:focus),
+::v-deep(.p-menubar .p-menuitem-link.router-link-active) {
+  background-color: #EC7600 !important;
+  color: #fff !important;
+  border-color: #EC7600 !important;
+}
+
+::v-deep(.p-menubar .p-menuitem-link:hover .p-menuitem-text),
+::v-deep(.p-menubar .p-menuitem-link:hover .p-menuitem-icon),
+::v-deep(.p-menubar .p-menuitem-link:focus .p-menuitem-text),
+::v-deep(.p-menubar .p-menuitem-link:focus .p-menuitem-icon),
+::v-deep(.p-menubar .p-menuitem-link.router-link-active .p-menuitem-text),
+::v-deep(.p-menubar .p-menuitem-link.router-link-active .p-menuitem-icon) {
+  color: #fff !important;
 }
 </style>

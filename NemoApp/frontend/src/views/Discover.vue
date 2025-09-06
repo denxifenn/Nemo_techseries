@@ -2,6 +2,7 @@
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import Card from 'primevue/card'
+import Paginator from 'primevue/paginator'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import EventFilterSidebar from '../components/EventFilterSidebar.vue'
@@ -13,7 +14,8 @@ export default {
     Button,
     Tag,
     Card,
-    EventFilterSidebar
+    EventFilterSidebar,
+    Paginator
   },
   setup() {
     const componentName = ref('Discover')
@@ -212,6 +214,19 @@ export default {
       return filtered
     })
 
+    const first = ref(0)
+    const rows = ref(12)
+
+    const onPageChange = (e) => {
+      first.value = e.first
+      rows.value = e.rows
+      try { eventsGridRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' }) } catch {}
+    }
+
+    const pagedEvents = computed(() => {
+      return filteredEvents.value.slice(first.value, first.value + rows.value)
+    })
+
     return {
       componentName,
       searchTerm,
@@ -220,6 +235,10 @@ export default {
       currentFilters,
       events,
       filteredEvents,
+      pagedEvents,
+      first,
+      rows,
+      onPageChange,
       handleFiltersChange,
       handleHeroSearch,
       handleSignUp
@@ -244,6 +263,7 @@ export default {
               placeholder="Search events..."
               v-model="searchTerm"
               @keyup.enter="handleHeroSearch"
+              class="search-input"
             >
             <button @click="handleHeroSearch">Search</button>
           </div>
@@ -267,7 +287,7 @@ export default {
         </aside>
         <div class="events-grid" ref="eventsGridRef">
           <div 
-            v-for="event in filteredEvents" 
+            v-for="event in pagedEvents"
             :key="event.id"
             class="event-card"
           >
@@ -310,6 +330,16 @@ export default {
           </div>
         </div>
       </div>
+
+        <div class="events-pagination">
+          <Paginator
+            :first="first"
+            :rows="rows"
+            :totalRecords="filteredEvents.length"
+            :rowsPerPageOptions="[6,12,24,48]"
+            @page="onPageChange"
+          />
+        </div>
 
         <!-- No Results Message -->
         <div v-if="filteredEvents.length === 0" class="no-results">
@@ -373,6 +403,11 @@ export default {
   outline: none;
   font-size: 1.1em;
   color: #333;
+  background: transparent;
+}
+
+.search-bar .search-input {
+  color: #333; /* Ensure search text is visible */
 }
 
 .search-bar button {

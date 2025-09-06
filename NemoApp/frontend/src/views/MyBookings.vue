@@ -5,7 +5,7 @@
     <!-- Page Header -->
     <div class="page-header">
       <h1 class="page-title">MY BOOKINGS</h1>
-      <p>Events you've signed up for!</p>
+      <p class="page-subtitle">Events you've signed up for!</p>
     </div>
 
     <!-- Bookings Grid -->
@@ -65,7 +65,7 @@
                 label="More Info"
                 icon="pi pi-info-circle"
                 size="small"
-                @click="router.push({ name: 'Event' })"
+                @click="router.push({ name: 'Event', params: { eventId: event.eventId } })"
                 class="action-btn"
               />
             </div>
@@ -145,7 +145,7 @@
 
 <script>
 import ProfileNavBar from "@/components/ProfileNavBar.vue";
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
 import Card from "primevue/card";
 import Avatar from "primevue/avatar";
 import Button from "primevue/button";
@@ -155,6 +155,7 @@ import Tag from "primevue/tag";
 import Toast from "primevue/toast";
 import { useToast } from "primevue/usetoast";
 import { useRouter } from "vue-router";
+import api from "@/services/api";
 
 export default {
   name: "MyBookingsPage",
@@ -174,73 +175,71 @@ export default {
     const showProfileDialog = ref(false);
     const selectedBooking = ref(null);
 
-    const closeProfile = () => {
-      showProfileDialog.value = false;
-    };
+    const bookings = ref([]);
+    const loading = ref(false);
+    const error = ref(null);
+    const placeholderImage = "/src/assets/workers_background.jpg";
 
-    const cancelBooking = (bookingId) => {
-      bookings.value = bookings.value.filter((b) => b.id !== bookingId);
-      toast.add({
-        severity: "warn",
-        summary: "Booking Cancelled",
-        detail: "Your booking has been cancelled!",
-        life: 3000,
-      });
-    };
-    // Sample bookings data - Fixed the variable name and structure
-    const bookings = ref([
-      {
-        id: 1,
-        title: "Basketball Tournament",
-        date: "Oct 15, 2024",
-        startTime: "2:00 PM",
-        endTime: "6:00 PM",
-        location: "Sports Center",
-        organiser: "Sports Club",
-        status: "active",
-        bookingSlots: 50,
-        description: "Annual basketball tournament for all skill levels.",
-        format: "indoor",
-        type: "sports",
-        region: "North",
-        price: 35,
-        image: "https://via.placeholder.com/300x200",
-      },
-      {
-        id: 2,
-        title: "Art Exhibition",
-        date: "Oct 20, 2024",
-        startTime: "10:00 AM",
-        endTime: "5:00 PM",
-        location: "Gallery Downtown",
-        organiser: "Art Society",
-        status: "active",
-        bookingSlots: 100,
-        description: "Unique art exhibition featuring local artists.",
-        format: "indoor",
-        type: "arts",
-        region: "South",
-        price: 0,
-        image: "https://via.placeholder.com/300x200",
-      },
-      {
-        id: 3,
-        title: "Virtual Cooking Class",
-        date: "Oct 18, 2024",
-        startTime: "6:00 PM",
-        endTime: "8:00 PM",
-        location: "Online",
-        organiser: "Culinary Institute",
-        status: "active",
-        bookingSlots: 30,
-        description: "Learn to cook traditional dishes from home.",
-        format: "online",
-        type: "workshop",
-        region: "North",
-        price: 50,
-        image: "https://via.placeholder.com/300x200",
-      },
-    ]);
+    function closeProfile() {
+      showProfileDialog.value = false;
+    }
+
+    async function loadBookings() {
+      loading.value = true;
+      error.value = null;
+      try {
+        const resp = await api.get("/api/bookings/my", { filter: "current" });
+        const list = Array.isArray(resp.data?.bookings) ? resp.data.bookings : [];
+        bookings.value = list.map(b => {
+          const ev = b.event || {};
+          return {
+            // booking id is used for cancel endpoint
+            id: b.id,                 // bookingId (used by cancel)
+            eventId: ev.id || b.eventId || "", // for "More Info" navigation
+            title: ev.title || "Event",
+            date: ev.date || "",
+            startTime: ev.startTime || ev.time || "",
+            endTime: "", // not provided in summary; leave blank
+            location: ev.location || "",
+            organiser: ev.organiser || "",
+            bookingSlots: 0, // not part of summary; omit from UI logic
+            description: "",
+            format: ev.format || "",
+            type: ev.type || ev.category || "",
+            region: ev.region || "",
+            price: ev.price ?? 0,
+            image: placeholderImage
+          };
+        });
+      } catch (e) {
+        console.error("Failed to load bookings", e);
+        error.value = e?.message || "Failed to load bookings";
+        bookings.value = [];
+      } finally {
+        loading.value = false;
+      }
+    }
+
+    async function cancelBooking(bookingId) {
+      try {
+        await api.del(`/api/bookings/${bookingId}`);
+        // Remove locally
+        bookings.value = bookings.value.filter(b => b.id !== bookingId);
+        toast.add({
+          severity: "warn",
+          summary: "Booking Cancelled",
+          detail: "Your booking has been cancelled",
+          life: 3000
+        });
+      } catch (e) {
+        const msg = e?.response?.data?.error || e?.message || "Failed to cancel booking";
+        toast.add({ severity: "error", summary: "Cancel Booking", detail: msg, life: 3000 });
+      }
+    }
+
+    onMounted(() => {
+      loadBookings();
+    });
 
     return {
       bookings,
@@ -250,6 +249,8 @@ export default {
       closeProfile,
       cancelBooking,
       toast,
+      loading,
+      error
     };
   },
 };
@@ -270,14 +271,14 @@ export default {
 
 .page-title {
   font-size: 2.5rem;
-  color: #ff7733;
+  color: #ffffff;
   margin-bottom: 0.5rem;
 }
 
-/* .page-subtitle {
-  color: #666;
+.page-subtitle {
+  color: white;
   font-size: 1.1rem;
-} */
+}
 
 .bookings-grid {
   display: grid;
@@ -287,7 +288,7 @@ export default {
 
 .booking-card {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-  background-color: #ffc67b;
+  background-color: #ffffff;
   border-radius: 20px;
 }
 
