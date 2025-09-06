@@ -10,12 +10,12 @@
             <Menubar :model="items">
                 <template #item="{ item, props, hasSubmenu }">
                     <router-link v-if="item.route" v-slot="{ href, navigate }" :to="item.route" custom>
-                        <a v-ripple :href="href" v-bind="props.action" @click="navigate">
+                        <a v-ripple :href="href" v-bind="props.action" class="nav-pill" @click="navigate">
                             <span :class="item.icon" />
                             <span>{{ item.label }}</span>
                         </a>
                     </router-link>
-                    <a v-else v-ripple :href="item.url" :target="item.target" v-bind="props.action">
+                    <a v-else v-ripple :href="item.url" :target="item.target" v-bind="props.action" class="nav-pill">
                         <span :class="item.icon" />
                         <span>{{ item.label }}</span>
                         <span v-if="hasSubmenu" class="pi pi-fw pi-angle-down" />
@@ -181,41 +181,28 @@ h4{
 
 /* removed old red hover override */
 
-/* Default: orange-themed pill buttons visible without hover */
-::v-deep(.p-menubar .p-menuitem-link) {
-  background-color: #FFF7ED !important;            /* light orange background */
+/* Force visibility via explicit class on anchor to avoid theme overrides */
+.nav-pill {
+  background-color: #FFF7ED !important;           /* light orange background */
   border: 1px solid #EC7600 !important;
   border-radius: 6px;
   color: #EC7600 !important;
   font-weight: 600;
   line-height: 1;
+  padding: 6px 10px;
 }
 
-/* Ensure icon/text adopt orange color in default state */
-::v-deep(.p-menubar .p-menuitem-link .p-menuitem-text),
-::v-deep(.p-menubar .p-menuitem-link .p-menuitem-icon) {
-  color: #EC7600 !important;
-}
-
-::v-deep(.p-menubar .p-menuitem-link:visited) {
-  color: #EC7600 !important;
+/* Inherit color to inner icon/text spans */
+.nav-pill * {
+  color: inherit !important;
 }
 
 /* Active/hover/focus states: solid orange with white text */
-::v-deep(.p-menubar .p-menuitem-link:hover),
-::v-deep(.p-menubar .p-menuitem-link:focus),
-::v-deep(.p-menubar .p-menuitem-link.router-link-active) {
+.nav-pill:hover,
+.nav-pill:focus,
+.nav-pill.router-link-active {
   background-color: #EC7600 !important;
-  color: #fff !important;
+  color: #ffffff !important;
   border-color: #EC7600 !important;
-}
-
-::v-deep(.p-menubar .p-menuitem-link:hover .p-menuitem-text),
-::v-deep(.p-menubar .p-menuitem-link:hover .p-menuitem-icon),
-::v-deep(.p-menubar .p-menuitem-link:focus .p-menuitem-text),
-::v-deep(.p-menubar .p-menuitem-link:focus .p-menuitem-icon),
-::v-deep(.p-menubar .p-menuitem-link.router-link-active .p-menuitem-text),
-::v-deep(.p-menubar .p-menuitem-link.router-link-active .p-menuitem-icon) {
-  color: #fff !important;
 }
 </style>
