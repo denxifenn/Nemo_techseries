@@ -55,6 +55,11 @@ const items = ref([
         label: 'Friends',
         icon: 'pi pi-users',
         route: '/friends'
+    },
+    {
+        label: 'API Tester',
+        icon: 'pi pi-bolt',
+        route: '/api-tester'
     }
 ]);
 </script>
