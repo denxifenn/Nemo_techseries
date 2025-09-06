@@ -557,7 +557,7 @@ const handleCancel = () => {
 }
 
 .create-btn {
-  background: #3b82f6;
+  background: #ec6212;
   color: white;
   border: none;
   padding: 0.75rem 2rem;
