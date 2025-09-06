@@ -1,11 +1,14 @@
 <template>
+    <div class="page-layout">
+
   <ProfileNavBar />
+    <div class="main-content">
 
   <div class="bookings-page">
     <!-- Page Header -->
     <div class="page-header">
       <h1 class="page-title">MY BOOKINGS</h1>
-      <p>Events you've signed up for!</p>
+      <p class="page-subtitle">Events you've signed up for!</p>
     </div>
 
     <!-- Bookings Grid -->
@@ -65,8 +68,8 @@
                 label="More Info"
                 icon="pi pi-info-circle"
                 size="small"
-                @click="router.push({ name: 'Event' })"
-                class="action-btn"
+                @click="moreInfo(event.id)"
+                class="more-info-btn"
               />
             </div>
           </template>
@@ -140,7 +143,9 @@
 
     <!-- Toast for notifications -->
     <Toast ref="toast" />
+    </div>
   </div>
+    </div>
 </template>
 
 <script>
@@ -174,6 +179,11 @@ export default {
     const showProfileDialog = ref(false);
     const selectedBooking = ref(null);
 
+    const moreInfo = (eventId) => {
+      // Navigate to the event page with the event ID
+      router.push({ name: 'Event', params: { eventId: eventId } })
+    }
+    
     const closeProfile = () => {
       showProfileDialog.value = false;
     };
@@ -250,15 +260,27 @@ export default {
       closeProfile,
       cancelBooking,
       toast,
+      moreInfo
     };
   },
 };
 </script>
 
 <style scoped>
+.page-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.main-content {
+  flex: 1;
+  margin-left: 250px; /* Account for fixed sidebar width */
+  min-height: 100vh;
+}
+
 .bookings-page {
-  padding: 2rem;
-  max-width: 1200px;
+  padding: 4rem;
+  max-width: 1000px;
   margin: 0 auto;
   margin-bottom: 100px;
 }
@@ -274,10 +296,10 @@ export default {
   margin-bottom: 0.5rem;
 }
 
-/* .page-subtitle {
+.page-subtitle {
   color: #666;
   font-size: 1.1rem;
-} */
+}
 
 .bookings-grid {
   display: grid;
@@ -355,9 +377,10 @@ export default {
 .cancel-booking-btn {
   background-color: #e63b0777;
   color: white;
+  flex: 1; /* Add this to match .more-info-btn */
 }
 
-.action-btn {
+.more-info-btn {
   flex: 1;
 }
 
