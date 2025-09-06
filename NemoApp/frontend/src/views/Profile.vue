@@ -151,6 +151,8 @@ import Divider from "primevue/divider";
 import ProgressBar from "primevue/progressbar";
 import Toast from "primevue/toast";
 import { useToast } from "primevue/usetoast";
+import { useRouter } from "vue-router";
+
 
 export default {
   name: "ProfilePage",
@@ -168,6 +170,7 @@ export default {
   },
   setup() {
     const toast = useToast();
+    const router = useRouter();
 
     onMounted(() => {
       // Component mounted successfully
@@ -215,12 +218,7 @@ export default {
     };
 
     const editProfile = () => {
-      toast.add({
-        severity: "info",
-        summary: "Edit Profile",
-        detail: "Opening profile editor",
-        life: 3000,
-      });
+      router.push({name: 'EditProfile' })
     };
 
     const shareProfile = () => {
@@ -270,6 +268,7 @@ export default {
 
     return {
       user,
+      router,
       changePhoto,
       editProfile,
       shareProfile,
