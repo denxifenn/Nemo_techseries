@@ -60,8 +60,8 @@ def list_suggestions(current_user):
                     u = user_snap.to_dict() or {}
                     s['user'] = {
                         'uid': uid,
-                        'name': u.get('name'),
-                        'email': u.get('email')
+                        'name': u.get('fullName', u.get('name')),
+                        'phoneNumber': u.get('phoneNumber')
                     }
 
             out.append(s)

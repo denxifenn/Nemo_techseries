@@ -187,8 +187,7 @@ const api = {
       method: 'POST',
       headers: { Authorization: `Bearer ${String(idToken || '').trim()}` },
       body: { idToken },
-      // We explicitly set header above, so keep skipAuth true to avoid double-attaching
-      skipAuth: true,
+      // skipAuth: true,
     });
   },
   async backendVerify() {

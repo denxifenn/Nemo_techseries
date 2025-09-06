@@ -2,25 +2,26 @@ from flask import Blueprint, jsonify, request
 from utils.decorators import require_auth
 from services.firebase_service import db, FirebaseService
 from firebase_admin import firestore as admin_fs
-from firebase_admin import auth as admin_auth
+from utils.phone_utils import format_singapore_phone
 
 friends_bp = Blueprint('friends', __name__)
 
-def _get_user_by_email(email: str):
+def _get_user_by_phone(phone_number: str):
     """
-    Return (uid, data) for exact email match in Firestore.
-    If not found, attempt to resolve via Firebase Auth and auto-provision a minimal users/{uid} doc.
-    Returns (None, None) if ambiguous or not resolvable.
+    Return (uid, data) for exact phoneNumber match in Firestore.
+    Accepts user input in various formats; normalizes to E.164 (+65XXXXXXXX).
+    Returns (None, None) if not found or ambiguous.
     """
-    email = (email or '').strip()
-    if not email:
+    try:
+        normalized = format_singapore_phone(phone_number)
+    except Exception:
         return None, None
 
-    # 1) Try Firestore users by exact email
+    # Try Firestore users by exact phoneNumber
     try:
         results = list(
             db.collection('users')
-              .where('email', '==', email)
+              .where('phoneNumber', '==', normalized)
               .limit(2)
               .stream()
         )
@@ -35,62 +36,35 @@ def _get_user_by_email(email: str):
         # Ambiguous; do not guess
         return None, None
 
-    # 2) Fallback: try Firebase Auth lookup and ensure a user doc exists
-    try:
-        auth_user = admin_auth.get_user_by_email(email)
-    except Exception:
-        return None, None
-
-    try:
-        user_ref = db.collection('users').document(auth_user.uid)
-        snap = user_ref.get()
-        if not snap.exists:
-            # Minimal profile
-            user_ref.set({
-                'uid': auth_user.uid,
-                'email': email,
-                'name': (auth_user.display_name or '').strip(),
-                'role': 'user',
-                'profilePicture': '',
-                'friends': [],
-                'createdAt': admin_fs.SERVER_TIMESTAMP
-            })
-            return auth_user.uid, {
-                'uid': auth_user.uid,
-                'email': email,
-                'name': (auth_user.display_name or '').strip(),
-                'role': 'user',
-                'profilePicture': '',
-                'friends': []
-            }
-        else:
-            data = snap.to_dict() or {}
-            return snap.id, data
-    except Exception:
-        return None, None
+    return None, None
 
 
 @friends_bp.route('/api/friends/request', methods=['POST'])
 @require_auth
 def send_friend_request(current_user):
     """
-    Send a friend request by recipient email.
-    Body: { "email": "friend@example.com" }
+    Send a friend request by recipient phone number.
+    Body: { "phoneNumber": "91234567" } or { "phoneNumber": "+6591234567" }
     Rules:
       - Cannot add self
       - Cannot add if already friends
       - If a pending request exists in either direction, do not duplicate
     """
     body = request.get_json(silent=True) or {}
-    email = (body.get('email') or '').strip()
+    phone_input = (body.get('phoneNumber') or '').strip()
 
-    if not email:
-        return jsonify({'success': False, 'error': 'Missing email'}), 400
+    if not phone_input:
+        return jsonify({'success': False, 'error': 'Missing phoneNumber'}), 400
 
-    # Resolve recipient
-    to_uid, to_user = _get_user_by_email(email)
+    # Normalize and resolve recipient
+    try:
+        normalized = format_singapore_phone(phone_input)
+    except Exception:
+        return jsonify({'success': False, 'error': 'Invalid Singapore phone number'}), 400
+
+    to_uid, to_user = _get_user_by_phone(normalized)
     if not to_uid:
-        return jsonify({'success': False, 'error': 'User not found for email'}), 404
+        return jsonify({'success': False, 'error': 'User not found for phoneNumber'}), 404
 
     if to_uid == current_user:
         return jsonify({'success': False, 'error': 'Cannot add yourself'}), 400
@@ -229,8 +203,8 @@ def list_friends(current_user):
                 d = snap.to_dict() or {}
                 friends.append({
                     'id': fid,
-                    'name': d.get('name'),
-                    'email': d.get('email'),
+                    'name': d.get('fullName', d.get('name')),
+                    'phoneNumber': d.get('phoneNumber'),
                     'profilePicture': d.get('profilePicture', '')
                 })
 

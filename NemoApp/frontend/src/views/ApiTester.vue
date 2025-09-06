@@ -18,18 +18,18 @@
         <span class="hint">Overrides Firebase token if set</span>
       </div>
       <div class="row">
-        <label>Firebase User</label>
-        <span>{{ currentUserEmail || 'Not signed in' }}</span>
+        <label>Firebase User (Phone)</label>
+        <span>{{ currentUserPhone || 'Not signed in' }}</span>
         <button @click="refreshFirebaseToken">Get ID Token</button>
-        <button @click="signOutFirebase" :disabled="!currentUserEmail">Sign Out</button>
+        <button @click="signOutFirebase" :disabled="!currentUserPhone">Sign Out</button>
       </div>
     </section>
 
     <section class="panel auth">
       <h2>Auth (Firebase + Backend)</h2>
       <div class="row">
-        <label>Email</label>
-        <input v-model="authEmail" placeholder="you@example.com" />
+        <label>Phone Number (+65)</label>
+        <input v-model="authPhone" placeholder="91234567" inputmode="numeric" pattern="[0-9]*" />
         <label>Password</label>
         <input v-model="authPassword" type="password" placeholder="Password123!" />
         <button @click="signupFirebase">Firebase Sign Up</button>
@@ -132,21 +132,52 @@
       <h2>Profile</h2>
       <div class="row">
         <button @click="getProfile">Get Profile</button>
+        <button @click="checkProfileStatus">Check Completion Status</button>
       </div>
       <div class="row">
-        <label>Name</label>
-        <input v-model="profile.name" placeholder="New Name" />
+        <label>Full Name</label>
+        <input v-model="profile.fullName" placeholder="Full Name" />
+        <label>Age</label>
+        <input v-model.number="profile.age" type="number" min="18" max="100" placeholder="Age (18-100)" />
+      </div>
+      <div class="row">
+        <label>Nationality</label>
+        <input v-model="profile.nationality" placeholder="e.g., Singaporean" />
+        <label>Home Country</label>
+        <input v-model="profile.homeCountry" placeholder="e.g., Singapore" />
+      </div>
+      <div class="row">
+        <label>Languages (CSV)</label>
+        <input v-model="profile.languagesCsv" placeholder="English, Mandarin" />
+        <label>Rest Days (CSV)</label>
+        <input v-model="profile.restDaysCsv" placeholder="Saturday, Sunday" />
+      </div>
+      <div class="row">
+        <label>Interests (CSV)</label>
+        <input v-model="profile.interestsCsv" placeholder="Football, Cooking" />
+        <label>Skills (CSV name:rating)</label>
+        <input v-model="profile.skillsCsv" placeholder="Cooking:Proficient, Programming:Expert" />
+      </div>
+      <div class="row">
         <label>Profile Picture URL</label>
         <input v-model="profile.profilePicture" placeholder="https://..." />
         <button @click="updateProfile">Update Profile</button>
+      </div>
+      <div class="hint">
+        Tips:
+        <ul>
+          <li>Languages and Interests: comma-separated values.</li>
+          <li>Rest Days: weekdays like Monday, Tuesday, ...</li>
+          <li>Skills: "name:rating" where rating is Basic | Proficient | Expert.</li>
+        </ul>
       </div>
     </section>
 
     <section class="panel friends">
       <h2>Friends</h2>
       <div class="row">
-        <label>Friend Email</label>
-        <input v-model="friends.email" placeholder="friend@example.com" />
+        <label>Friend Phone Number (+65)</label>
+        <input v-model="friends.phoneNumber" placeholder="91234567" inputmode="numeric" pattern="[0-9]*" />
         <button @click="sendFriendRequest">Send Friend Request</button>
       </div>
       <div class="row">
@@ -230,6 +261,7 @@ import {
   getIdToken,
   onAuth
 } from '../services/firebase';
+import { formatSingaporePhone, phoneToEmail, emailToPhone } from '../utils/phoneUtils';
 
 const toast = useToast();
 
@@ -240,9 +272,9 @@ const baseUrlInput = ref(baseUrl.value);
 const manualTokenInput = ref(api.getManualToken());
 
 // Auth state
-const authEmail = ref('');
+const authPhone = ref('');
 const authPassword = ref('');
-const currentUserEmail = ref('');
+const currentUserPhone = ref('');
 
 // Subscriptions
 onMounted(() => {
@@ -251,7 +283,8 @@ onMounted(() => {
   manualTokenInput.value = api.getManualToken();
   // Track current user
   onAuth((user) => {
-    currentUserEmail.value = user?.email || '';
+    const alias = user?.email || '';
+    currentUserPhone.value = emailToPhone(alias) || '';
   });
 });
 
@@ -291,9 +324,11 @@ async function signupFirebase() {
   lastError.value = '';
   lastResponse.value = null;
   try {
-    const cred = await createUserWithEmailAndPassword(auth, authEmail.value, authPassword.value);
-    lastResponse.value = { success: true, user: { uid: cred.user.uid, email: cred.user.email } };
-    toast.add({ severity: 'success', summary: 'Firebase Sign Up', detail: cred.user.email, life: 3000 });
+    const formatted = formatSingaporePhone(authPhone.value);
+    const alias = phoneToEmail(formatted);
+    const cred = await createUserWithEmailAndPassword(auth, alias, authPassword.value);
+    lastResponse.value = { success: true, user: { uid: cred.user.uid, phoneNumber: formatted } };
+    toast.add({ severity: 'success', summary: 'Firebase Sign Up', detail: formatted, life: 3000 });
   } catch (e) {
     const msg = e?.message || String(e);
     lastError.value = msg;
@@ -305,9 +340,11 @@ async function loginFirebase() {
   lastError.value = '';
   lastResponse.value = null;
   try {
-    const cred = await signInWithEmailAndPassword(auth, authEmail.value, authPassword.value);
-    lastResponse.value = { success: true, user: { uid: cred.user.uid, email: cred.user.email } };
-    toast.add({ severity: 'success', summary: 'Firebase Sign In', detail: cred.user.email, life: 3000 });
+    const formatted = formatSingaporePhone(authPhone.value);
+    const alias = phoneToEmail(formatted);
+    const cred = await signInWithEmailAndPassword(auth, alias, authPassword.value);
+    lastResponse.value = { success: true, user: { uid: cred.user.uid, phoneNumber: formatted } };
+    toast.add({ severity: 'success', summary: 'Firebase Sign In', detail: formatted, life: 3000 });
   } catch (e) {
     const msg = e?.message || String(e);
     lastError.value = msg;
@@ -320,6 +357,7 @@ async function signOutFirebase() {
   lastResponse.value = null;
   try {
     await signOut();
+    currentUserPhone.value = '';
     lastResponse.value = { success: true, message: 'Signed out' };
     toast.add({ severity: 'success', summary: 'Signed out', life: 2500 });
   } catch (e) {
@@ -354,10 +392,13 @@ async function backendLogin() {
   try {
     const token = await getIdToken(true);
     if (!token) throw new Error('No Firebase token. Sign in first or set manual token and use backendVerify instead.');
-    const resp = await api.backendLoginWithIdToken(token);
+    // Pass phoneNumber to provision profile
+    const resp = await api.backendLoginWithIdToken(token, {
+      phoneNumber: currentUserPhone.value || undefined,
+    });
     lastResponse.value = resp.data || resp;
-    const userEmail = resp?.data?.user?.email || resp?.data?.user?.uid || 'unknown';
-    toast.add({ severity: 'success', summary: 'Backend Login', detail: `Provisioned ${userEmail}`, life: 3000 });
+    const label = resp?.data?.user?.phoneNumber || resp?.data?.user?.uid || 'unknown';
+    toast.add({ severity: 'success', summary: 'Backend Login', detail: `Provisioned ${label}`, life: 3000 });
   } catch (e) {
     const msg = e?.response?.data?.error || e?.message || String(e);
     lastError.value = msg;
@@ -454,6 +495,25 @@ function parseCsv(input) {
     .filter(s => s.length > 0);
 }
 
+// Parse "Name:Rating" pairs separated by commas into [{name, rating}]
+function parseSkills(input) {
+  if (!input) return [];
+  const out = [];
+  for (const item of input.split(',')) {
+    const pair = String(item || '').trim();
+    if (!pair) continue;
+    const [nameRaw, ratingRaw] = pair.split(':').map(t => String(t || '').trim());
+    if (!nameRaw) continue;
+    const ratingLc = String(ratingRaw || 'Basic').trim().toLowerCase();
+    let rating = 'Basic';
+    if (ratingLc === 'proficient') rating = 'Proficient';
+    else if (ratingLc === 'expert') rating = 'Expert';
+    else rating = 'Basic';
+    out.push({ name: nameRaw, rating });
+  }
+  return out;
+}
+
 async function createGroupBooking() {
   lastError.value = '';
   lastResponse.value = null;
@@ -532,7 +592,14 @@ async function cancelBookingByEvent() {
 
 // Profile
 const profile = reactive({
-  name: '',
+  fullName: '',
+  age: null,
+  nationality: '',
+  languagesCsv: '',
+  homeCountry: '',
+  restDaysCsv: '',
+  interestsCsv: '',
+  skillsCsv: '',
   profilePicture: '',
 });
 
@@ -556,12 +623,28 @@ async function updateProfile() {
   lastResponse.value = null;
   try {
     const body = {};
-    if (profile.name) body.name = profile.name;
+    if (profile.fullName) body.fullName = profile.fullName;
+    if (profile.age != null && profile.age !== '') body.age = Number(profile.age);
+    if (profile.nationality) body.nationality = profile.nationality;
+    if (profile.languagesCsv) body.languages = parseCsv(profile.languagesCsv);
+    if (profile.homeCountry) body.homeCountry = profile.homeCountry;
+    if (profile.restDaysCsv) body.restDays = parseCsv(profile.restDaysCsv);
+    if (profile.interestsCsv) body.interests = parseCsv(profile.interestsCsv);
+    if (profile.skillsCsv) body.skills = parseSkills(profile.skillsCsv);
     if (profile.profilePicture) body.profilePicture = profile.profilePicture;
+
+    if (Object.keys(body).length === 0) {
+      throw new Error('No fields to update');
+    }
+
     const resp = await api.put('/api/profile', body);
     lastResponse.value = resp.data || resp;
-    const fields = Object.keys(body).join(', ') || 'no fields';
-    toast.add({ severity: 'success', summary: 'Profile updated', detail: fields, life: 3000 });
+
+    const fields = Object.keys(body).join(', ');
+    const completed = resp?.data?.profileCompleted;
+    const missing = (resp?.data?.missingFields || []).join(', ');
+    const detail = completed ? `Updated: ${fields}. Profile completed.` : `Updated: ${fields}. Missing: ${missing}`;
+    toast.add({ severity: 'success', summary: 'Profile updated', detail, life: 4000 });
   } catch (e) {
     const msg = e?.response?.data?.error || e?.message || String(e);
     lastError.value = msg;
@@ -571,7 +654,7 @@ async function updateProfile() {
 
 // Friends
 const friends = reactive({
-  email: '',
+  phoneNumber: '',
   requestId: '',
   action: 'accept',
 });
@@ -580,8 +663,8 @@ async function sendFriendRequest() {
   lastError.value = '';
   lastResponse.value = null;
   try {
-    if (!friends.email) throw new Error('email required');
-    const resp = await api.post('/api/friends/request', { email: friends.email });
+    if (!friends.phoneNumber) throw new Error('phoneNumber required');
+    const resp = await api.post('/api/friends/request', { phoneNumber: friends.phoneNumber });
     lastResponse.value = resp.data || resp;
     const id = resp?.data?.requestId || 'unknown';
     toast.add({ severity: 'success', summary: 'Friend request sent', detail: id, life: 3000 });
@@ -683,31 +766,6 @@ async function adminHealth() {
     const msg = e?.response?.data?.error || e?.message || String(e);
     lastError.value = msg;
     toast.add({ severity: 'error', summary: 'Admin Health failed', detail: msg, life: 4000 });
-  }
-}
-
-async function adminCreateEvent() {
-  lastError.value = '';
-  lastResponse.value = null;
-  try {
-    const body = {
-      title: adminForm.title,
-      description: adminForm.description,
-      category: adminForm.category,
-      location: adminForm.location,
-      date: adminForm.date,
-      time: adminForm.time,
-      maxParticipants: Number(adminForm.maxParticipants),
-    };
-    if (adminForm.imageUrl) body.imageUrl = adminForm.imageUrl;
-    const resp = await api.post('/api/admin/events', body);
-    lastResponse.value = resp.data || resp;
-    const id = resp?.data?.eventId || 'unknown';
-    toast.add({ severity: 'success', summary: 'Event created', detail: id, life: 3000 });
-  } catch (e) {
-    const msg = e?.response?.data?.error || e?.message || String(e);
-    lastError.value = msg;
-    toast.add({ severity: 'error', summary: 'Create Event failed', detail: msg, life: 4000 });
   }
 }
 

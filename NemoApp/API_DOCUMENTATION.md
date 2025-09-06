@@ -13,7 +13,7 @@ Authorization: Bearer <firebase_id_token>
 Note on UIDs and signup/login flow:
 - Normal users receive Firebase-generated random, immutable UIDs on registration/sign-in. These are the canonical identifiers used by the backend and Firestore.
 - Admin accounts may be provisioned via Firebase Admin SDK with a custom, human-readable UID (e.g., "admin1"). This is optional and performed outside normal user signup.
-- Frontend handles email+password sign-in via Firebase Auth to obtain an ID token. The backend never receives raw passwords; it only verifies the ID token and extracts the UID.
+- Frontend handles phone+password sign-in via Firebase Auth using a phone-to-email alias (e.g., 6591234567@phone.local) to obtain an ID token. The backend never receives raw passwords; it only verifies the ID token and extracts the UID.
 ## Response Format
 All responses follow this structure:
 ```json
@@ -31,7 +31,7 @@ All responses follow this structure:
 ### 1. Authentication
 
 #### Signup (Frontend via Firebase Auth)
-- Users sign up in the frontend using Firebase Auth (email/password). The backend never receives raw passwords.
+- Users sign up in the frontend using Firebase Auth (phone+password via phone-to-email alias). The backend never receives raw passwords.
 - Firebase issues an immutable UID per user (random alphanumeric string).
 - Admin/service accounts can still be provisioned via the Firebase Admin SDK out-of-band if needed.
 #### Login
@@ -41,16 +41,23 @@ POST /api/auth/login
 **Body:**
 ```json
 {
-  "idToken": "firebase_id_token_from_client_auth"
+  "idToken": "firebase_id_token_from_client_auth",
+  "phoneNumber": "+6591234567",
+  "name": "John Doe"
 }
 ```
+Notes:
+- phoneNumber and name are optional and used to enrich the Firestore user document on first login.
+- phoneNumber should be E.164 formatted (+65XXXXXXXX).
+
 **Response:**
 ```json
 {
   "success": true,
   "user": {
     "uid": "user_id",
-    "email": "user@example.com",
+    "phoneNumber": "+6591234567",
+    "fullName": "John Doe",
     "name": "John Doe",
     "role": "user"
   }
@@ -79,12 +86,23 @@ Headers: Authorization: Bearer <token>
 #### Get All Events
 ```
 GET /api/events
-GET /api/events?category=sports
-GET /api/events?status=upcoming
-GET /api/events?limit=20
+GET /api/events?format=offline&type=music&region=central
+GET /api/events?fromDate=2025-03-01&toDate=2025-03-31&timing=evening
+GET /api/events?minPrice=0&maxPrice=20
+GET /api/events?status=upcoming&limit=20
+GET /api/events?category=sports   # legacy filter for older data
 ```
-Note:
-- Optional query parameters: category, status, limit (default 20, max 50).
+Filters (all optional):
+- format: online|offline
+- type: sports|arts|culture|music|performance|workshop|tours|other
+- region: north|south|east|west|central
+- timing: morning|afternoon|evening|night (derived from startTime)
+- fromDate/toDate: YYYY-MM-DD (inclusive)
+- minPrice/maxPrice: numeric SGD (applied in-memory)
+- status: upcoming|completed|cancelled
+- category: legacy filter for older data
+- limit: default 20, max 50
+
 **Response:**
 ```json
 {
@@ -92,14 +110,22 @@ Note:
   "events": [
     {
       "id": "event_id",
-      "title": "Football Match",
-      "description": "Friendly match",
-      "category": "sports",
-      "location": "Kallang Stadium",
+      "title": "Community Drum Circle",
+      "description": "Learn basic rhythms together.",
+      "format": "offline",
+      "venueType": "outdoor",
+      "type": "music",
+      "region": "central",
+      "organiser": "Community Arts Group",
+      "location": "Esplanade Outdoor Theatre",
       "date": "2025-03-15",
-      "time": "14:00",
-      "maxParticipants": 20,
-      "currentParticipants": 5,
+      "startTime": "18:30",
+      "endTime": "20:00",
+      "timing": "evening",
+      "price": 0,
+      "maxParticipants": 50,
+      "currentParticipants": 7,
+      "availableSlots": 43,
       "status": "upcoming"
     }
   ],
@@ -117,17 +143,26 @@ GET /api/events/{event_id}
   "success": true,
   "event": {
     "id": "event_id",
-    "title": "Football Match",
+    "title": "Community Drum Circle",
     "description": "Detailed description...",
-    "category": "sports",
-    "location": "Kallang Stadium",
+    "format": "offline",
+    "venueType": "outdoor",
+    "type": "music",
+    "region": "central",
+    "organiser": "Community Arts Group",
+    "location": "Esplanade Outdoor Theatre",
     "date": "2025-03-15",
-    "time": "14:00",
-    "maxParticipants": 20,
-    "currentParticipants": 5,
+    "startTime": "18:30",
+    "endTime": "20:00",
+    "timing": "evening",
+    "price": 0,
+    "maxParticipants": 50,
+    "currentParticipants": 7,
+    "availableSlots": 43,
     "participants": ["uid1", "uid2"],
     "createdBy": "admin_uid",
-    "status": "upcoming"
+    "status": "upcoming",
+    "imageUrl": ""
   }
 }
 ```
@@ -257,11 +292,25 @@ Headers: Authorization: Bearer <token>
   "success": true,
   "profile": {
     "uid": "user_id",
-    "email": "user@example.com",
-    "name": "John Doe",
+    "phoneNumber": "+6591234567",
+    "fullName": "John Doe",
+    "age": 28,
+    "nationality": "Singaporean",
+    "languages": ["English", "Mandarin"],
+    "homeCountry": "Singapore",
+    "restDays": ["Saturday", "Sunday"],
+    "interests": ["Football", "Cooking"],
+    "skills": [
+      {"name": "Programming", "rating": "Expert"},
+      {"name": "Cooking", "rating": "Proficient"}
+    ],
     "role": "user",
     "profilePicture": "url_to_image",
-    "friends": ["friend_uid1", "friend_uid2"]
+    "friends": ["friend_uid1", "friend_uid2"],
+    "profileCompleted": true,
+    "profileCompletedAt": "2025-03-01T10:00:00Z",
+    "createdAt": "2025-02-28T10:00:00Z",
+    "updatedAt": "2025-03-01T10:00:00Z"
   }
 }
 ```
@@ -274,17 +323,71 @@ Headers: Authorization: Bearer <token>
 **Body:**
 ```json
 {
-  "name": "New Name",
+  "fullName": "New Name",
+  "age": 28,
+  "nationality": "Singaporean",
+  "languages": ["English", "Mandarin"],
+  "homeCountry": "Singapore",
+  "restDays": ["Saturday", "Sunday"],
+  "interests": ["Football", "Cooking"],
+  "skills": [
+    {"name": "Web Development", "rating": "Expert"},
+    {"name": "Photography", "rating": "Basic"}
+  ],
   "profilePicture": "new_image_url"
 }
 ```
+Validation:
+- fullName: 1-100 chars
+- age: integer 18-100
+- nationality: non-empty string (2-50 chars)
+- languages: array with at least 1 language (each 2-30 chars, max 10)
+- homeCountry: non-empty string (2-50 chars)
+- restDays: array of weekdays (["Monday".."Sunday"])
+- interests: array of strings (max 20, each 1-50 chars)
+- skills: array of { name: 1-50 chars, rating: "Basic" | "Proficient" | "Expert" } (max 20)
+
 **Response:**
 ```json
 {
   "success": true,
   "message": "Profile updated",
   "updated": {
-    "name": "New Name"
+    "fullName": "New Name",
+    "age": 28,
+    "nationality": "Singaporean",
+    "languages": ["English", "Mandarin"],
+    "homeCountry": "Singapore",
+    "restDays": ["Saturday", "Sunday"],
+    "interests": ["Football", "Cooking"],
+    "skills": [
+      {"name": "Web Development", "rating": "Expert"},
+      {"name": "Photography", "rating": "Basic"}
+    ],
+    "profilePicture": "new_image_url"
+  },
+  "profileCompleted": true,
+  "missingFields": []
+}
+```
+
+#### Profile Completion Status
+```
+GET /api/profile/completion-status
+Headers: Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "status": {
+    "profileCompleted": false,
+    "missingFields": ["age", "nationality", "languages"],
+    "completedFields": ["fullName", "phoneNumber", "homeCountry", "restDays"],
+    "totalRequired": 7,
+    "totalCompleted": 4,
+    "completionPercentage": 57
   }
 }
 ```
@@ -301,7 +404,7 @@ Headers: Authorization: Bearer <token>
 **Body:**
 ```json
 {
-  "email": "friend@example.com"
+  "phoneNumber": "+6591234567"
 }
 ```
 **Response:**
@@ -345,7 +448,7 @@ Headers: Authorization: Bearer <token>
     {
       "id": "friend_uid",
       "name": "Friend Name",
-      "email": "friend@example.com",
+      "phoneNumber": "+6591234567",
       "profilePicture": "image_url"
     }
   ],
@@ -376,19 +479,34 @@ Headers: Authorization: Bearer <token>
 POST /api/admin/events
 Headers: Authorization: Bearer <token>
 ```
-**Body:**
+Body (new schema):
 ```json
 {
-  "title": "New Event",
-  "description": "Event description",
-  "category": "sports",
-  "location": "Location",
+  "title": "Community Drum Circle",
+  "description": "Learn basic rhythms together.",
+  "format": "offline",
+  "venueType": "outdoor",
+  "type": "music",
+  "region": "central",
+  "organiser": "Community Arts Group",
+  "location": "Esplanade Outdoor Theatre",
   "date": "2025-03-20",
-  "time": "15:00",
-  "maxParticipants": 30,
-  "imageUrl": "optional_image_url"
+  "startTime": "18:30",
+  "endTime": "20:00",
+  "price": 0,
+  "maxParticipants": 50,
+  "imageUrl": ""
 }
 ```
+Notes:
+- Legacy support: requests that still send "category" and "time" are mapped to "type" and "startTime" with a default 2-hour endTime.
+- format must be "online" or "offline". If "offline", venueType is required ("indoor" or "outdoor").
+- type must be one of: sports|arts|culture|music|performance|workshop|tours|other
+- region must be one of: north|south|east|west|central
+- date is "YYYY-MM-DD"; times are 24h "HH:MM" (SGT); startTime must be earlier than endTime
+- price is SGD float; 0 means free
+- Event start must be in the future (date+startTime)
+
 **Response:**
 ```json
 {
@@ -398,31 +516,36 @@ Headers: Authorization: Bearer <token>
 }
 ```
 
-Validation:
-- Event start must be in the future (creation is rejected if date/time is in the past)
-
 #### Update Event
 ```
 PUT /api/admin/events/{event_id}
 Headers: Authorization: Bearer <token>
 ```
-Body (any subset):
+Body (any subset of new fields):
 ```json
 {
   "title": "New Title",
   "description": "Updated description",
-  "category": "sports|workshop|social|cultural",
-  "location": "New Location",
-  "date": "YYYY-MM-DD",
-  "time": "HH:MM",
+  "format": "offline",
+  "venueType": "indoor",
+  "type": "workshop",
+  "region": "north",
+  "organiser": "Community Center",
+  "location": "Community Center A",
+  "date": "2025-03-22",
+  "startTime": "10:00",
+  "endTime": "12:00",
+  "price": 15.0,
   "maxParticipants": 50,
-  "imageUrl": "optional_image_url"
+  "imageUrl": ""
 }
 ```
 Rules:
-- category, if provided, must be one of: sports, workshop, social, cultural
-- date/time, if provided, must not result in a past scheduled time
+- Validations same as create; when date/startTime/endTime change, start < end is enforced and start must be in the future
 - maxParticipants, if provided, must be >= currentParticipants
+- Legacy fields:
+  - "category" will be mapped to "type"
+  - "time" will be mapped to "startTime" and default "endTime" (+120 mins) if not provided
 
 **Response:**
 ```json
@@ -431,7 +554,9 @@ Rules:
   "message": "Event updated",
   "updated": {
     "title": "New Title",
-    "time": "16:00"
+    "startTime": "10:00",
+    "endTime": "12:00",
+    "type": "workshop"
   }
 }
 ```
@@ -475,7 +600,7 @@ Headers: Authorization: Bearer <token>
       "user": {
         "uid": "user_id",
         "name": "John Doe",
-        "email": "john@example.com"
+        "phoneNumber": "+6591234567"
       },
       "text": "Any feedback or suggestions for future events...",
       "createdAt": "2025-03-01T13:00:00Z"
